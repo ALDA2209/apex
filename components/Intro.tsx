@@ -497,7 +497,7 @@ export default function Intro({ alTerminar }: { alTerminar: () => void }) {
   const [titulo, setTitulo] = useState(false);
 
   return (
-    <main className="relative h-dvh w-full overflow-hidden bg-black">
+    <main className="relative w-full overflow-hidden bg-black" style={{ height: "var(--alto, 100dvh)" }}>
       {titulo ? (
         <>
           <div className="absolute inset-0">{FONDOS[2]}</div>

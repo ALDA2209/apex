@@ -81,6 +81,30 @@ export default function Juego() {
     if (fase === "tienda" && objetivo === "listo") setFase("carrera");
   }, [fase, objetivo]);
 
+  /* Alto real de la pantalla: en el celular, al entrar o salir de pantalla completa,
+     el navegador tarda en avisar el tamaño nuevo y los botones quedaban fuera de vista. */
+  useEffect(() => {
+    const medir = () => {
+      const alto = window.visualViewport?.height ?? window.innerHeight;
+      document.documentElement.style.setProperty("--alto", `${Math.round(alto)}px`);
+    };
+    const medirVarias = () => {
+      medir();
+      [80, 300, 800, 1500].forEach((ms) => window.setTimeout(medir, ms));
+    };
+    medir();
+    window.addEventListener("resize", medir);
+    window.addEventListener("orientationchange", medirVarias);
+    document.addEventListener("fullscreenchange", medirVarias);
+    window.visualViewport?.addEventListener("resize", medir);
+    return () => {
+      window.removeEventListener("resize", medir);
+      window.removeEventListener("orientationchange", medirVarias);
+      document.removeEventListener("fullscreenchange", medirVarias);
+      window.visualViewport?.removeEventListener("resize", medir);
+    };
+  }, []);
+
   if (fase === "intro") {
     return (
       <>
@@ -110,7 +134,7 @@ export default function Juego() {
   }
 
   return (
-    <main className="relative h-dvh w-full overflow-hidden bg-black">
+    <main className="fixed left-0 top-0 w-full overflow-hidden bg-black" style={{ height: "var(--alto, 100dvh)" }}>
       <Sonido />
       <Ajustes derecha={fase === "carrera" ? "right-24 [@media(max-height:480px)]:right-20 [@media(max-width:640px)_and_(orientation:portrait)]:right-[5.2rem]" : "right-5"} />
       <div className="absolute inset-0">
