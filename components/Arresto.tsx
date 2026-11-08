@@ -1,17 +1,20 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { callar, hablar, sirena } from "@/lib/audio";
 import { estado, limiteFaltas, puntosFaltas } from "@/lib/estado";
 import { preguntaDe, PUENTES } from "@/lib/puentes";
 import { diaActual, perderDia } from "@/lib/semana";
-import { precargarIA } from "@/lib/niveles";
+import { iaListaPara, precargarIA, prepararNivel } from "@/lib/niveles";
+import { leerEstadoIA, suscribirEstadoIA } from "@/lib/ia";
 
 const JET = "var(--font-jetbrains)";
 const BRIC = "var(--font-bricolage)";
 
 /* Pantalla de arresto: juntaste 3 puntos de infracción ante la autoridad y pierdes la partida. */
 export default function Arresto({ alSalir, alReintentar }: { alSalir: () => void; alReintentar: () => void }) {
+  const ia = useSyncExternalStore(suscribirEstadoIA, leerEstadoIA, leerEstadoIA);
+  const iaLista = iaListaPara(estado.nivel);
   const ultima = estado.faltas[estado.faltas.length - 1];
   const oficial = PUENTES[ultima?.puente ?? 0]?.oficial ?? "El oficial";
 
@@ -77,11 +80,16 @@ export default function Arresto({ alSalir, alReintentar }: { alSalir: () => void
         <div className="mt-5 flex flex-wrap gap-3">
           <button
             type="button"
-            onClick={alReintentar}
-            className="rounded-full px-6 py-3 text-[11px] uppercase tracking-[0.25em] transition hover:brightness-110"
+            disabled={!iaLista && ia.fase !== "error"}
+            onClick={() => {
+              if (iaLista) {
+                if (prepararNivel(estado.nivel)) alReintentar();
+              } else precargarIA(estado.nivel);
+            }}
+            className="rounded-full px-6 py-3 text-[11px] uppercase tracking-[0.25em] transition enabled:hover:brightness-110 disabled:opacity-50"
             style={{ background: "#ff7a3d", color: "#1a0d05", fontFamily: JET }}
           >
-            Reintentar el {diaActual().nombre.toLowerCase()}
+            {iaLista ? `Reintentar el ${diaActual().nombre.toLowerCase()}` : ia.fase === "error" ? "Reintentar con la IA" : "La IA prepara tus preguntas…"}
           </button>
           <button
             type="button"

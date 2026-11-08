@@ -13,7 +13,6 @@ import Objetivo from "@/components/Objetivo";
 import Orbita from "@/components/Orbita";
 import Tactil, { PantallaCompleta } from "@/components/Tactil";
 import Ajustes, { Sonido } from "@/components/Sonido";
-import { prepararNivel } from "@/lib/niveles";
 import Billetera from "@/components/Billetera";
 import { cargarProgreso, nivelDelDia, useProgreso } from "@/lib/semana";
 import { despertarIA } from "@/lib/ia";
@@ -76,7 +75,6 @@ export default function Juego() {
   useEffect(() => {
     estado.activo = fase === "carrera";
     if (fase === "tienda") {
-      prepararNivel(estado.nivel);
       prepararPartida();
     }
     if (fase === "carrera") estado.velocidad = 1;

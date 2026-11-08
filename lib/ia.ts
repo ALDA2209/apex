@@ -1,5 +1,5 @@
 declare const process: { env: Record<string, string | undefined> };
-/* Conexión con el servidor de IA (Gemini). Si no hay servidor o falla, el juego usa sus textos de respaldo. */
+/* Conexión con el servidor de IA (Gemini). Las preguntas del juego salen solo de aquí. */
 let BASE = "";
 try {
   BASE = process.env.NEXT_PUBLIC_IA_URL ?? "";
@@ -65,6 +65,8 @@ function ponerEstadoIA(e: EstadoIA) {
   oyentesIA.forEach((f) => f());
 }
 export const leerEstadoIA = () => estadoIA;
+/** Avisa a la pantalla que algo cambió (por ejemplo, que las preguntas ya están guardadas). */
+export const refrescarIA = () => ponerEstadoIA({ ...estadoIA });
 export function suscribirEstadoIA(f: () => void) {
   oyentesIA.add(f);
   return () => {
@@ -72,9 +74,9 @@ export function suscribirEstadoIA(f: () => void) {
   };
 }
 
-export async function pedirPreguntas(nivel: number, evitar: string[]): Promise<PreguntaIA[] | null> {
-  if (!BASE) return null;
-  ponerEstadoIA({ fase: "pidiendo", motivo: "" });
+type Intento = { lista: PreguntaIA[] } | { motivo: string; repetir: boolean };
+
+async function intentarPreguntas(nivel: number, evitar: string[]): Promise<Intento> {
   const ctl = new AbortController();
   const t = setTimeout(() => ctl.abort(), 80000);
   try {
@@ -85,32 +87,48 @@ export async function pedirPreguntas(nivel: number, evitar: string[]): Promise<P
       signal: ctl.signal,
     });
     if (!r.ok) {
-      ponerEstadoIA({ fase: "error", motivo: r.status === 429 ? "demasiadas pruebas seguidas, espera unos minutos" : `el servidor respondió ${r.status}` });
-      return null;
+      return {
+        motivo: r.status === 429 ? "demasiadas pruebas seguidas, espera unos minutos" : `el servidor respondió ${r.status}`,
+        repetir: r.status !== 429 && r.status !== 404,
+      };
     }
     const j = (await r.json()) as { preguntas?: PreguntaIA[] };
     const l = j.preguntas;
-    if (!Array.isArray(l) || l.length < 6) {
-      ponerEstadoIA({ fase: "error", motivo: "la IA devolvió preguntas incompletas" });
-      return null;
-    }
-    const ok = l.every(
-      (q) =>
-        typeof q?.pregunta === "string" &&
-        Array.isArray(q.opciones) &&
-        q.opciones.length >= 3 &&
-        q.opciones.filter((o) => o.correcta).length === 1,
-    );
-    ponerEstadoIA(ok ? { fase: "lista", motivo: "" } : { fase: "error", motivo: "la IA devolvió un formato no válido" });
-    return ok ? l : null;
+    const completa =
+      Array.isArray(l) &&
+      [0, 1, 2].every((p) => [0, 1].every((k) => l.some((q) => q?.puente === p && q?.k === k))) &&
+      l.every(
+        (q) =>
+          typeof q?.pregunta === "string" &&
+          Array.isArray(q.opciones) &&
+          q.opciones.length >= 3 &&
+          q.opciones.filter((o) => o.correcta).length === 1,
+      );
+    return completa ? { lista: l as PreguntaIA[] } : { motivo: "la IA devolvió preguntas incompletas", repetir: true };
   } catch (e) {
     const abortado = e instanceof DOMException && e.name === "AbortError";
-    ponerEstadoIA({
-      fase: "error",
+    return {
       motivo: abortado ? "el servidor tardó demasiado en responder" : "no se pudo conectar (revisa la dirección y ALLOWED_ORIGIN)",
-    });
-    return null;
+      repetir: !abortado,
+    };
   } finally {
     clearTimeout(t);
   }
+}
+
+/** Pide las preguntas del nivel. Si falla por un tropiezo del servidor, lo intenta una vez más sola. */
+export async function pedirPreguntas(nivel: number, evitar: string[]): Promise<PreguntaIA[] | null> {
+  if (!BASE) return null;
+  ponerEstadoIA({ fase: "pidiendo", motivo: "" });
+  let r = await intentarPreguntas(nivel, evitar);
+  if ("motivo" in r && r.repetir) {
+    await new Promise((f) => setTimeout(f, 1500));
+    r = await intentarPreguntas(nivel, evitar);
+  }
+  if ("lista" in r) {
+    ponerEstadoIA({ fase: "lista", motivo: "" });
+    return r.lista;
+  }
+  ponerEstadoIA({ fase: "error", motivo: r.motivo });
+  return null;
 }

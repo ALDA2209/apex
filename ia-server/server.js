@@ -7,7 +7,7 @@ import http from "node:http";
 
 const PUERTO = process.env.PORT || 3001;
 const CLAVE = process.env.GEMINI_API_KEY || "";
-const MODELOS = (process.env.GEMINI_MODEL || "gemini-3.8-flash,gemini-2.5-flash").split(",").map((m) => m.trim());
+const MODELOS = (process.env.GEMINI_MODEL || "gemini-3.8-flash,gemini-2.5-flash,gemini-2.5-flash-lite,gemini-2.0-flash").split(",").map((m) => m.trim());
 const MODELO = MODELOS[0];
 const ORIGENES = (process.env.ALLOWED_ORIGIN || "*").split(",").map((s) => s.trim());
 const LIMITE_IP = 20; // consultas por IP cada 10 minutos
@@ -305,7 +305,7 @@ function validarPreguntas(j, plan, nOp) {
 async function crearPreguntas(b) {
   const { nOp, plan, usuario } = pedidoPreguntas(b);
   let ultimo;
-  for (let intento = 0; intento < 2; intento++) {
+  for (let intento = 0; intento < (MODELOS.length > 2 ? 1 : 2); intento++) {
     try {
       const crudo = await geminiJson(REGLAS_PREGUNTAS, usuario);
       return validarPreguntas(JSON.parse(crudo), plan, nOp);
@@ -319,7 +319,7 @@ async function crearPreguntas(b) {
 
 async function llamarJson(modelo, sistema, usuario) {
   const ctl = new AbortController();
-  const t = setTimeout(() => ctl.abort(), 30000);
+  const t = setTimeout(() => ctl.abort(), 22000);
   try {
     const generationConfig = {
       temperature: 1,

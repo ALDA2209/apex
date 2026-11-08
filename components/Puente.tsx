@@ -6,7 +6,6 @@ import { RoundedBox } from "@react-three/drei";
 import { CanvasTexture, DoubleSide, SRGBColorSpace } from "three";
 import type { Group } from "three";
 import { estado, llegarAPuente } from "@/lib/estado";
-import { resolverPuente } from "@/lib/niveles";
 import { PUENTES, type Puente as DatosPuente } from "@/lib/puentes";
 
 export function crearCartel(titulo: string, sub: string) {
@@ -130,7 +129,6 @@ function PuenteActivo({ p, indice }: { p: DatosPuente; indice: number }) {
       if (dist < 70 && dist > -12) {
         estado.velocidad = Math.max(0.12, Math.min(0.99, dist / 30));
         if (dist < 0.8) {
-          resolverPuente(indice, { sinComprobante: estado.entregas.filter((v) => v.comprobante === "ninguno").length });
           llegarAPuente(zPuente + 6, p.oficial);
         }
       }

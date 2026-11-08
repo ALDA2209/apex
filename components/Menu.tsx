@@ -3,8 +3,9 @@
 import TiendaMenu from "@/components/TiendaMenu";
 import InventarioMenu from "@/components/InventarioMenu";
 import EstadoIA from "@/components/EstadoIA";
-import { precargarIA } from "@/lib/niveles";
-import { useEffect, useRef, useState } from "react";
+import { iaListaPara, precargarIA, prepararNivel } from "@/lib/niveles";
+import { leerEstadoIA, suscribirEstadoIA } from "@/lib/ia";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { MutableRefObject } from "react";
 import Avatar from "./Avatar";
 import { Canvas, useThree } from "@react-three/fiber";
@@ -82,6 +83,8 @@ export default function Menu({ perfil, alCambiar, alJugar }: Props) {
   const [verInventario, setVerInventario] = useState(false);
   const [prueba, setPrueba] = useState<Perfil | null>(null);
   const valido = perfil.nombre.trim().length >= 2;
+  const ia = useSyncExternalStore(suscribirEstadoIA, leerEstadoIA, leerEstadoIA);
+  const iaLista = iaListaPara(dia.nivel);
 
   /* Las preguntas de la IA se piden desde el menú, para que estén listas al empezar. */
   useEffect(() => {
@@ -105,7 +108,8 @@ export default function Menu({ perfil, alCambiar, alJugar }: Props) {
       <form
         onSubmit={(e) => {
           e.preventDefault();
-          if (valido) alJugar();
+          /* Sin preguntas de la IA no se empieza: no hay preguntas de respaldo. */
+          if (valido && prepararNivel(dia.nivel)) alJugar();
         }}
         className="relative z-10 flex min-w-0 flex-col justify-center gap-6 px-5 py-8 sm:gap-7 sm:px-7 sm:py-10 md:px-14"
       >
@@ -205,15 +209,31 @@ export default function Menu({ perfil, alCambiar, alJugar }: Props) {
           </div>
         </div>
 
-        <button
-          type="submit"
-          disabled={!valido}
-          className="anim-subir group flex items-center justify-between rounded-2xl bg-acento px-6 py-4 text-left font-semibold text-[#1a0d05] transition enabled:hover:brightness-110 enabled:active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40"
-          style={{ animationDelay: "140ms" }}
-        >
-          <span>{valido ? `Empezar el ${dia.nombre.toLowerCase()}` : "Escribe tu nombre para entrar"}</span>
-          <span className="font-mono text-sm opacity-70 transition group-hover:translate-x-1">→</span>
-        </button>
+        {(() => {
+          const reintentar = valido && !iaLista && ia.fase === "error";
+          const esperando = valido && !iaLista && (ia.fase === "pidiendo" || ia.fase === "inactiva" || ia.fase === "lista");
+          const texto = !valido
+            ? "Escribe tu nombre para entrar"
+            : iaLista
+              ? `Empezar el ${dia.nombre.toLowerCase()}`
+              : reintentar
+                ? "Reintentar con la IA"
+                : ia.fase === "sin-url"
+                  ? "Falta conectar la IA"
+                  : "La IA está preparando tus preguntas…";
+          return (
+            <button
+              type={reintentar ? "button" : "submit"}
+              onClick={reintentar ? () => precargarIA(dia.nivel) : undefined}
+              disabled={!valido || (!iaLista && !reintentar)}
+              className="anim-subir group flex items-center justify-between rounded-2xl bg-acento px-6 py-4 text-left font-semibold text-[#1a0d05] transition enabled:hover:brightness-110 enabled:active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40"
+              style={{ animationDelay: "140ms" }}
+            >
+              <span className={esperando ? "animate-pulse" : ""}>{texto}</span>
+              <span className="font-mono text-sm opacity-70 transition group-hover:translate-x-1">{reintentar ? "↻" : "→"}</span>
+            </button>
+          );
+        })()}
 
         <div className="anim-subir grid grid-cols-2 gap-2" style={{ animationDelay: "160ms" }}>
           <button
