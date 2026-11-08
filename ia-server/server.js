@@ -411,7 +411,10 @@ async function crearPreguntas(b) {
   throw ultimo;
 }
 
+/* Para las preguntas se piensa lo mínimo: responde mucho más rápido. Si Google no acepta "minimal", se pasa a "low". */
+let PENSAR = "minimal";
 async function llamarJson(modelo, sistema, usuario, clave, ms = 40000) {
+  const t0 = Date.now();
   const ctl = new AbortController();
   const t = setTimeout(() => ctl.abort(), ms);
   try {
@@ -421,7 +424,7 @@ async function llamarJson(modelo, sistema, usuario, clave, ms = 40000) {
       responseMimeType: "application/json",
       responseSchema: ESQUEMA_PREGUNTAS,
     };
-    if (/^gemini-([3-9]|\d{2})/.test(modelo)) generationConfig.thinkingConfig = { thinkingLevel: "low" };
+    if (/^gemini-([3-9]|\d{2})/.test(modelo)) generationConfig.thinkingConfig = { thinkingLevel: PENSAR };
     const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent`, {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-goog-api-key": clave },
@@ -433,6 +436,12 @@ async function llamarJson(modelo, sistema, usuario, clave, ms = 40000) {
       signal: ctl.signal,
     });
     if (!r.ok) {
+      if (r.status === 400 && PENSAR === "minimal" && generationConfig.thinkingConfig) {
+        PENSAR = "low";
+        console.log("Google no acepta thinkingLevel minimal: se usa low");
+        clearTimeout(t);
+        return await llamarJson(modelo, sistema, usuario, clave, Math.max(5000, ms - (Date.now() - t0)));
+      }
       if (r.status === 429) throw await error429(r, modelo);
       throw new Error(`Gemini ${modelo} ${r.status}`);
     }
@@ -443,6 +452,7 @@ async function llamarJson(modelo, sistema, usuario, clave, ms = 40000) {
       .join("")
       .trim();
     if (!texto) throw new Error("vacío");
+    console.log(`${modelo} respondió en ${((Date.now() - t0) / 1000).toFixed(1)} s (pensar: ${PENSAR})`);
     return texto;
   } finally {
     clearTimeout(t);
