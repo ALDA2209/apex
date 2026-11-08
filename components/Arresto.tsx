@@ -5,6 +5,7 @@ import { callar, hablar, sirena } from "@/lib/audio";
 import { estado, limiteFaltas, puntosFaltas } from "@/lib/estado";
 import { preguntaDe, PUENTES } from "@/lib/puentes";
 import { diaActual, perderDia } from "@/lib/semana";
+import { precargarIA } from "@/lib/niveles";
 
 const JET = "var(--font-jetbrains)";
 const BRIC = "var(--font-bricolage)";
@@ -17,6 +18,11 @@ export default function Arresto({ alSalir, alReintentar }: { alSalir: () => void
   /* El día se pierde: sin paga y con multa, pero lo que respondiste bien te deja experiencia. */
   const [castigo, setCastigo] = useState<{ multa: number; xp: number } | null>(null);
   const cobrado = useRef(false);
+  /* Mientras lees esto, la IA ya prepara las preguntas del reintento. */
+  useEffect(() => {
+    precargarIA(estado.nivel);
+  }, []);
+
   useEffect(() => {
     if (cobrado.current) return;
     cobrado.current = true;

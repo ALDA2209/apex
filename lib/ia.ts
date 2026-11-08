@@ -56,10 +56,27 @@ export function despertarIA() {
   fetch(BASE.replace(/\/$/, "") + "/salud").catch(() => {});
 }
 
+/* Estado de la IA para mostrarlo en el menú (y saber por qué no llegó, si falla). */
+export type EstadoIA = { fase: "sin-url" | "inactiva" | "pidiendo" | "lista" | "error"; motivo: string };
+let estadoIA: EstadoIA = { fase: BASE ? "inactiva" : "sin-url", motivo: "" };
+const oyentesIA = new Set<() => void>();
+function ponerEstadoIA(e: EstadoIA) {
+  estadoIA = e;
+  oyentesIA.forEach((f) => f());
+}
+export const leerEstadoIA = () => estadoIA;
+export function suscribirEstadoIA(f: () => void) {
+  oyentesIA.add(f);
+  return () => {
+    oyentesIA.delete(f);
+  };
+}
+
 export async function pedirPreguntas(nivel: number, evitar: string[]): Promise<PreguntaIA[] | null> {
   if (!BASE) return null;
+  ponerEstadoIA({ fase: "pidiendo", motivo: "" });
   const ctl = new AbortController();
-  const t = setTimeout(() => ctl.abort(), 45000);
+  const t = setTimeout(() => ctl.abort(), 80000);
   try {
     const r = await fetch(BASE.replace(/\/$/, "") + "/preguntas", {
       method: "POST",
@@ -67,10 +84,16 @@ export async function pedirPreguntas(nivel: number, evitar: string[]): Promise<P
       body: JSON.stringify({ nivel, evitar }),
       signal: ctl.signal,
     });
-    if (!r.ok) return null;
+    if (!r.ok) {
+      ponerEstadoIA({ fase: "error", motivo: r.status === 429 ? "demasiadas pruebas seguidas, espera unos minutos" : `el servidor respondió ${r.status}` });
+      return null;
+    }
     const j = (await r.json()) as { preguntas?: PreguntaIA[] };
     const l = j.preguntas;
-    if (!Array.isArray(l) || l.length < 6) return null;
+    if (!Array.isArray(l) || l.length < 6) {
+      ponerEstadoIA({ fase: "error", motivo: "la IA devolvió preguntas incompletas" });
+      return null;
+    }
     const ok = l.every(
       (q) =>
         typeof q?.pregunta === "string" &&
@@ -78,8 +101,14 @@ export async function pedirPreguntas(nivel: number, evitar: string[]): Promise<P
         q.opciones.length >= 3 &&
         q.opciones.filter((o) => o.correcta).length === 1,
     );
+    ponerEstadoIA(ok ? { fase: "lista", motivo: "" } : { fase: "error", motivo: "la IA devolvió un formato no válido" });
     return ok ? l : null;
-  } catch {
+  } catch (e) {
+    const abortado = e instanceof DOMException && e.name === "AbortError";
+    ponerEstadoIA({
+      fase: "error",
+      motivo: abortado ? "el servidor tardó demasiado en responder" : "no se pudo conectar (revisa la dirección y ALLOWED_ORIGIN)",
+    });
     return null;
   } finally {
     clearTimeout(t);

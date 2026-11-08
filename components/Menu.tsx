@@ -2,6 +2,8 @@
 
 import TiendaMenu from "@/components/TiendaMenu";
 import InventarioMenu from "@/components/InventarioMenu";
+import EstadoIA from "@/components/EstadoIA";
+import { precargarIA } from "@/lib/niveles";
 import { useEffect, useRef, useState } from "react";
 import type { MutableRefObject } from "react";
 import Avatar from "./Avatar";
@@ -80,6 +82,11 @@ export default function Menu({ perfil, alCambiar, alJugar }: Props) {
   const [verInventario, setVerInventario] = useState(false);
   const [prueba, setPrueba] = useState<Perfil | null>(null);
   const valido = perfil.nombre.trim().length >= 2;
+
+  /* Las preguntas de la IA se piden desde el menú, para que estén listas al empezar. */
+  useEffect(() => {
+    precargarIA(dia.nivel);
+  }, [dia.nivel]);
   const zoom = useRef<ApiZoom | null>(null);
 
   // teclas + y − para acercar o alejar (si no estás escribiendo el nombre)
@@ -228,6 +235,8 @@ export default function Menu({ perfil, alCambiar, alJugar }: Props) {
             <span className="font-mono text-sm text-tenue">{prog.compras.length}</span>
           </button>
         </div>
+
+        <EstadoIA />
 
         <p className="font-mono text-[11px] text-tenue/80">A · D o ← → para cambiar de carril</p>
         <p className="text-[10px] text-tenue/50">Modelos 3D del mototaxi y del personaje generados con Meshy (CC BY 4.0).</p>

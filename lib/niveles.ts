@@ -342,10 +342,27 @@ const leerVistas = (): string[] => {
 
 /* Pide a Gemini las preguntas de esta partida. Si llegan a tiempo, reemplazan las de respaldo
    (solo en los puentes que todavía no has pasado). Si falla, el juego sigue con el banco. */
+type Pedido = { n: Nivel; promesa: Promise<PreguntaIA[] | null> };
+let pedido: Pedido | null = null;
+
+/* Se piden desde el menú: así, cuando empiezas a jugar, las preguntas de la IA ya están listas. */
+export function precargarIA(n: Nivel) {
+  if (!hayIA()) return;
+  if (pedido && pedido.n === n) return;
+  const p: Pedido = { n, promesa: pedirPreguntas(n, leerVistas()) };
+  p.promesa.then((l) => {
+    if (!l && pedido === p) pedido = null; // falló: la próxima vez se vuelve a intentar
+  });
+  pedido = p;
+}
+
 async function cargarPreguntasIA(n: Nivel, gen: number) {
   if (!hayIA()) return;
-  const lista = await pedirPreguntas(n, leerVistas());
+  precargarIA(n);
+  const usado = pedido;
+  const lista = usado ? await usado.promesa : null;
   if (!lista || gen !== generacion) return;
+  if (pedido === usado) pedido = null; // ya se usaron: la próxima partida pide otras nuevas
   const SOLES = [60, 70, 80];
   const RIESGO = [0, 15, 25, 40];
   const SANCION = [0, -50, -85, -120];
