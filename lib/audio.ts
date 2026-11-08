@@ -367,14 +367,23 @@ if (typeof window !== "undefined" && "speechSynthesis" in window) {
   cargarVoces();
   window.speechSynthesis.addEventListener?.("voiceschanged", cargarVoces);
 }
-const MUJER = /(female|mujer|sabina|helena|paulina|monica|mónica|lucia|lucía|elena|laura|maria|maría|sofia|sofía|paloma|dalia|camila)/i;
-const HOMBRE = /(male|jorge|diego|pablo|raul|raúl|enrique|carlos|alvaro|álvaro|juan|miguel|alonso|jaime)/i;
+const MUJER = /(female|mujer|camila|sabina|helena|paulina|monica|mónica|lucia|lucía|elena|laura|maria|maría|sofia|sofía|paloma|dalia)/i;
+const HOMBRE = /(male|alonso|jorge|diego|pablo|raul|raúl|enrique|carlos|alvaro|álvaro|juan|miguel|jaime)/i;
+
+/* Prefiere voces de español de Perú (en Edge: "Alonso" y "Camila"), luego Latinoamérica. */
+function puntaje(v: SpeechSynthesisVoice) {
+  const l = v.lang.replace("_", "-").toLowerCase();
+  if (l === "es-pe") return 4;
+  if (/^es-(419|us|mx|co|ar|cl|ve|ec|bo|uy|py)/.test(l)) return 3;
+  return 1;
+}
 
 function elegirVoz(mujer: boolean) {
-  const pref = (v: SpeechSynthesisVoice) => (/PE|MX|US|419|AR|CO|CL/i.test(v.lang) ? 1 : 0);
-  const lista = [...voces].sort((a, b) => pref(b) - pref(a));
+  const lista = [...voces].sort((a, b) => puntaje(b) - puntaje(a));
   const re = mujer ? MUJER : HOMBRE;
-  return lista.find((v) => re.test(v.name)) ?? lista[0] ?? null;
+  const nat = (v: SpeechSynthesisVoice) => (/natural|online/i.test(v.name) ? 1 : 0);
+  const mejores = lista.filter((v) => re.test(v.name)).sort((a, b) => puntaje(b) - puntaje(a) || nat(b) - nat(a));
+  return mejores[0] ?? lista[0] ?? null;
 }
 
 export function callar() {

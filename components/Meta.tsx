@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { hayIA, pedirTutor } from "@/lib/ia";
 import { estado, useRiesgo, useSoles, useVentas } from "@/lib/estado";
 import { PUENTES } from "@/lib/puentes";
 import { callar, hablar } from "@/lib/audio";
@@ -11,6 +12,8 @@ const BRIC = "var(--font-bricolage)";
 
 export default function Meta({ alSalir }: { alSalir: () => void }) {
   useEffect(() => () => callar(), []);
+  const [textoIA, setTextoIA] = useState<string | null>(null);
+  const [pensando, setPensando] = useState(hayIA());
   const soles = useSoles();
   const ventas = useVentas();
   const entregas = estado.entregas;
@@ -32,6 +35,32 @@ export default function Meta({ alSalir }: { alSalir: () => void }) {
       : `Consultaste ${consultadas.length} de ${CONSULTAS.length} temas y gastaste ${estado.gastoAbogado} soles. Eso es prevención: cuesta menos que corregir un error después.${
           falladas > 0 ? " Aun así, repasa las lecciones de los puentes donde fallaste." : " Y tus decisiones lo demuestran."
         }`;
+  useEffect(() => {
+    if (!hayIA()) return;
+    let vivo = true;
+    pedirTutor({
+      nivel: estado.nivel,
+      decisiones: estado.decisiones.map((d) => ({
+        titulo: PUENTES[d.puente]?.titulo + " · " + PUENTES[d.puente]?.subtitulo,
+        eligio: PUENTES[d.puente]?.opciones[d.opcion]?.texto ?? "",
+        correcta: d.correcta,
+        leccion: PUENTES[d.puente]?.opciones[d.opcion]?.leccion ?? "",
+      })),
+      ventas: estado.entregas.map((v) => ({ negocio: v.negocio, comprobante: v.comprobante, acierto: v.acierto })),
+      consultas: estado.consultas.length,
+      riesgo: Math.round(estado.riesgo),
+      infracciones: estado.infracciones.length,
+    }).then((t) => {
+      if (!vivo) return;
+      setTextoIA(t);
+      setPensando(false);
+      if (t) hablar(`${ABOGADO}. ${t}`, "narrador");
+    });
+    return () => {
+      vivo = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const color = riesgo <= 35 ? "#2dd4bf" : riesgo <= 65 ? "#fbbf24" : "#f43f5e";
   const veredicto =
     riesgo <= 35
@@ -114,12 +143,17 @@ export default function Meta({ alSalir }: { alSalir: () => void }) {
             ⚖ Tu abogado opina · {ABOGADO}
           </p>
           <p className="mt-1 text-base leading-snug text-white/90" style={{ fontFamily: BRIC }}>
-            {consejo}
+            {pensando ? "El Dr. Paredes está revisando tu partida…" : (textoIA ?? consejo)}
           </p>
+          {textoIA && (
+            <p className="mt-1 text-[10px] uppercase tracking-[0.2em] text-white/40" style={{ fontFamily: JET }}>
+              Comentario generado con IA (Gemini) a partir de tus decisiones · puede equivocarse
+            </p>
+          )}
           <div className="mt-2 flex flex-wrap items-center gap-2">
             <button
               type="button"
-              onClick={() => hablar(`${ABOGADO}. ${consejo}`, "narrador")}
+              onClick={() => hablar(`${ABOGADO}. ${textoIA ?? consejo}`, "narrador")}
               className="rounded-full border border-white/20 px-4 py-1.5 text-[11px] uppercase tracking-[0.2em] text-white/90 hover:border-white/50"
               style={{ fontFamily: JET }}
             >
