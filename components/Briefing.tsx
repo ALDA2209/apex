@@ -98,7 +98,7 @@ export default function Briefing({
   const escenas = [
     {
       lugar: "MISIÓN 1 · RUTA A LA FERIA",
-      texto: `${quien}, hoy debutas en el reparto de la familia. Tu tía te presta su mototaxi de carga: viejo, pero fiel. Atrás van las cajas con el pedido importado.`,
+      texto: `${quien}, hoy empiezas a repartir para la familia. Tu tía te presta su mototaxi de carga: viejo, pero fiel. Atrás van las cajas con el pedido importado.`,
     },
     {
       lugar: "EN LA CARRETERA",
