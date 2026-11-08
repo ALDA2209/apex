@@ -1,5 +1,5 @@
 /* Servidor pequeño de Apex: guarda la clave de Gemini y responde solo dos cosas:
-   /tutor  → el Dr. Paredes comenta tu partida
+   /tutor  → el Dr. Aldahir Silva comenta tu partida
    /simple → explica una lección en palabras más fáciles
    Sin dependencias. La clave va en la variable GEMINI_API_KEY (nunca en el código). */
 import http from "node:http";
@@ -39,7 +39,7 @@ const limpio = (t, n = 400) =>
     .trim()
     .slice(0, n);
 
-const REGLAS = `Eres el Dr. Paredes, abogado tributarista peruano de un juego educativo llamado Apex.
+const REGLAS = `Eres el Dr. Aldahir Silva, abogado tributarista peruano de un juego educativo llamado Apex.
 Hablas a jóvenes y emprendedores de mypes (bodegueros, mototaxistas) en español peruano, con palabras simples y tono cálido.
 REGLAS ESTRICTAS:
 - Usa SOLO la información que te doy. No inventes leyes, artículos, montos ni plazos.

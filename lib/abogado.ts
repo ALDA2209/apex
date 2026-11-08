@@ -10,7 +10,7 @@ export type Consulta = {
 
 export const COSTO_CONSULTA = 25;
 export const RIESGO_CONSULTA = -4;
-export const ABOGADO = "Dr. Paredes";
+export const ABOGADO = "Dr. Aldahir Silva";
 
 export const CONSULTAS: Consulta[] = [
   {

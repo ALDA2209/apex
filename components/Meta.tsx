@@ -140,7 +140,7 @@ export default function Meta({ alSalir }: { alSalir: () => void }) {
             ["Ventas", `S/ ${ventas}`, "#fbbf24"],
             ["Ventas con comprobante", `${ventasCon}/${entregas.length}`, "#5eead4"],
             ["Riesgo fiscal", `${riesgo}%`, color],
-            ["Decisiones bien", `${bien}/${PUENTES.length}`, "#5eead4"],
+            ["Decisiones bien", `${bien}/${decisiones.length}`, "#5eead4"],
             ["Compras con comprobante", `${conComp}/${estado.compras.length}`, "#5eead4"],
           ].map(([t, v, c]) => (
             <div key={t} className="rounded-xl border border-white/10 bg-white/5 px-3 py-2">
@@ -199,7 +199,7 @@ export default function Meta({ alSalir }: { alSalir: () => void }) {
             ⚖ Tu abogado opina · {ABOGADO}
           </p>
           <p className="mt-1 text-base leading-snug text-white/90" style={{ fontFamily: BRIC }}>
-            {pensando ? "El Dr. Paredes está revisando tu partida…" : (textoIA ?? consejo)}
+            {pensando ? "El Dr. Aldahir Silva está revisando tu partida…" : (textoIA ?? consejo)}
           </p>
           {textoIA && (
             <p className="mt-1 text-[10px] uppercase tracking-[0.2em] text-white/40" style={{ fontFamily: JET }}>
