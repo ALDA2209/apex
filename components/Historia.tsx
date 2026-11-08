@@ -196,24 +196,6 @@ export default function Historia({
         </span>
       </div>
 
-      {/* capítulos */}
-      <div
-        className="pointer-events-none absolute left-1/2 flex -translate-x-1/2 gap-1.5"
-        style={{ top: "calc(8.5vh + 2.6rem)" }}
-      >
-        {escenas.map((_, i) => (
-          <span
-            key={i}
-            className="h-[3px] w-10 rounded-full"
-            style={{
-              background: i < n ? "#ff7a3d" : i === n ? "rgba(255,122,61,0.9)" : "rgba(255,255,255,0.22)",
-              boxShadow: i === n ? "0 0 10px rgba(255,122,61,0.8)" : "none",
-              transition: "background 400ms ease",
-            }}
-          />
-        ))}
-      </div>
-
       <button
         type="button"
         onClick={(e) => {
