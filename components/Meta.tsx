@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { hayIA, pedirTutor } from "@/lib/ia";
 import { estado, useRiesgo, useSoles, useVentas } from "@/lib/estado";
 import { PUENTES, preguntaDe } from "@/lib/puentes";
 import { callar, hablar } from "@/lib/audio";
 import { ABOGADO, CONSULTAS, COSTO_CONSULTA } from "@/lib/abogado";
+import { CAPITAL } from "@/lib/estado";
+import { cobrarDia, DIAS, diaActual, leerProgreso, rangoDe, siguienteDia, type ResultadoDia } from "@/lib/semana";
 
 const JET = "var(--font-jetbrains)";
 const BRIC = "var(--font-bricolage)";
@@ -13,6 +15,23 @@ const BRIC = "var(--font-bricolage)";
 export default function Meta({ alSalir }: { alSalir: () => void }) {
   useEffect(() => () => callar(), []);
   const [textoIA, setTextoIA] = useState<string | null>(null);
+  /* Se cobra el día una sola vez: ganancia, experiencia y rango. */
+  const [dia, setDia] = useState<ResultadoDia | null>(null);
+  const cobrado = useRef(false);
+  useEffect(() => {
+    if (cobrado.current) return;
+    cobrado.current = true;
+    setDia(
+      cobrarDia({
+        soles: estado.soles,
+        capital: CAPITAL,
+        correctas: estado.decisiones.filter((d) => d.correcta).length,
+        comprasConComprobante: estado.compras.filter((c) => c.conComprobante).length,
+        ventasConComprobante: estado.entregas.filter((v) => v.comprobante !== "ninguno").length,
+        faltas: estado.faltas.reduce((t, f) => t + f.peso, 0),
+      }),
+    );
+  }, []);
   const [pensando, setPensando] = useState(hayIA());
   const soles = useSoles();
   const ventas = useVentas();
@@ -76,11 +95,42 @@ export default function Meta({ alSalir }: { alSalir: () => void }) {
         style={{ background: "rgba(6,10,20,0.94)" }}
       >
         <p className="text-[10px] uppercase tracking-[0.3em]" style={{ color: "#d9ff3f", fontFamily: JET }}>
-          Meta · Ruta completada · Nivel {estado.nivel}
+          {dia ? DIAS[dia.dia - 1].nombre : diaActual().nombre} completado · Semana {leerProgreso().semana}
         </p>
         <h2 className="mt-1 text-3xl font-semibold text-white" style={{ fontFamily: BRIC }}>
           {veredicto}
         </h2>
+
+        {dia && (
+          <div
+            className="mt-4 rounded-2xl border px-4 py-3"
+            style={{ borderColor: "rgba(251,191,36,0.45)", background: "rgba(251,191,36,0.06)", fontFamily: JET }}
+          >
+            <p className="text-[10px] uppercase tracking-[0.3em]" style={{ color: "#fbbf24" }}>
+              Paga del día
+            </p>
+            <div className="mt-1 flex flex-wrap items-baseline gap-x-6 gap-y-1">
+              <span className="text-3xl font-semibold" style={{ color: "#fbbf24" }}>
+                + S/ {dia.ganancia}
+              </span>
+              <span className="text-xl font-semibold" style={{ color: "#c4b5fd" }}>
+                + {dia.xp} XP
+              </span>
+              <span className="text-xs text-white/70">
+                Billetera: S/ {leerProgreso().dinero} · {rangoDe(leerProgreso().xp).nombre}
+              </span>
+            </div>
+            <p className="mt-1.5 text-xs text-white/70" style={{ fontFamily: BRIC }}>
+              Por la caja S/ {dia.porCaja} · por respuestas correctas S/ {dia.porRespuestas}
+              {dia.rutaLimpia ? " · por ruta sin infracciones S/ 30" : ""}
+            </p>
+            {dia.rangoDespues !== dia.rangoAntes && (
+              <p className="mt-1 text-sm" style={{ color: "#c4b5fd", fontFamily: BRIC }}>
+                ¡Subiste de rango! Ahora eres {dia.rangoDespues}.
+              </p>
+            )}
+          </div>
+        )}
 
         <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4" style={{ fontFamily: JET }}>
           {[
@@ -229,22 +279,19 @@ export default function Meta({ alSalir }: { alSalir: () => void }) {
           Los montos del juego son un ejemplo. Las reglas y sanciones reales están en sunat.gob.pe.
         </p>
         <div className="mt-4 flex flex-wrap gap-3">
-          {estado.nivel < 3 && (
-            <button
-              type="button"
-              onClick={() => {
-                try {
-                  localStorage.setItem("apex-nivel", String(estado.nivel + 1));
-                } catch {}
-                estado.nivel = (estado.nivel + 1) as 1 | 2 | 3;
-                alSalir();
-              }}
-              className="rounded-full px-6 py-3 text-[11px] uppercase tracking-[0.25em] transition hover:brightness-110"
-              style={{ background: "#ff7a3d", color: "#1a0d05", fontFamily: JET }}
-            >
-              Siguiente nivel → Nivel {estado.nivel + 1}
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={() => {
+              siguienteDia();
+              alSalir();
+            }}
+            className="rounded-full px-6 py-3 text-[11px] uppercase tracking-[0.25em] transition hover:brightness-110"
+            style={{ background: "#ff7a3d", color: "#1a0d05", fontFamily: JET }}
+          >
+            {dia?.semanaCerrada
+              ? `Cerrar la semana → Semana ${leerProgreso().semana + 1}`
+              : `Siguiente día → ${DIAS[Math.min(4, (dia?.dia ?? diaActual().n))].nombre}`}
+          </button>
           <button
             type="button"
             onClick={alSalir}

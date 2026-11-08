@@ -13,15 +13,16 @@ import Objetivo from "@/components/Objetivo";
 import Orbita from "@/components/Orbita";
 import Tactil, { PantallaCompleta } from "@/components/Tactil";
 import Ajustes, { Sonido } from "@/components/Sonido";
-import { prepararNivel, type Nivel } from "@/lib/niveles";
+import { prepararNivel } from "@/lib/niveles";
+import Billetera from "@/components/Billetera";
+import { cargarProgreso, nivelDelDia, useProgreso } from "@/lib/semana";
 import { despertarIA } from "@/lib/ia";
 import { estado, prepararPartida, salirDeTienda, useDentro, useObjetivo, type Genero } from "@/lib/estado";
-import { PERFIL_INICIAL, type Perfil } from "@/lib/perfil";
+import { AVATAR_REAL, PERFIL_INICIAL, type Perfil } from "@/lib/perfil";
 
 type Fase = "intro" | "menu" | "briefing" | "tienda" | "carrera";
 const CLAVE = "apex-perfil";
 const CLAVE_GENERO = "apex-genero";
-const CLAVE_NIVEL = "apex-nivel";
 const JET = "var(--font-jetbrains)";
 
 export default function Juego() {
@@ -29,22 +30,25 @@ export default function Juego() {
   const [perfil, setPerfil] = useState<Perfil>(PERFIL_INICIAL);
   const [cargado, setCargado] = useState(false);
   const [genero, setGenero] = useState<Genero | null>("el");
-  const [nivel, setNivel] = useState<Nivel>(1);
+  const [partida, setPartida] = useState(0);
+  const progreso = useProgreso();
   const dentro = useDentro();
   const objetivo = useObjetivo();
 
   useEffect(() => {
     try {
-      const nv = Number(localStorage.getItem(CLAVE_NIVEL));
-      if (nv === 1 || nv === 2 || nv === 3) {
-        setNivel(nv);
-        estado.nivel = nv;
-      }
       const guardado = localStorage.getItem(CLAVE);
-      if (guardado) setPerfil({ ...PERFIL_INICIAL, ...JSON.parse(guardado) });
+      // personaje y mototaxi: solo el modelo real
+      if (guardado) setPerfil({ ...PERFIL_INICIAL, ...JSON.parse(guardado), avatar: AVATAR_REAL, moto: 0 });
     } catch {}
+    cargarProgreso();
     setCargado(true);
   }, []);
+
+  /* La dificultad la da el día de la semana (lunes fácil, viernes difícil). */
+  useEffect(() => {
+    estado.nivel = nivelDelDia(progreso.dia);
+  }, [progreso.dia]);
 
   useEffect(() => {
     if (!cargado) return;
@@ -52,14 +56,6 @@ export default function Juego() {
       localStorage.setItem(CLAVE, JSON.stringify(perfil));
     } catch {}
   }, [perfil, cargado]);
-
-  const elegirNivel = (n: Nivel) => {
-    estado.nivel = n;
-    setNivel(n);
-    try {
-      localStorage.setItem(CLAVE_NIVEL, String(n));
-    } catch {}
-  };
 
   const elegirGenero = (g: Genero) => {
     estado.genero = g;
@@ -128,8 +124,6 @@ export default function Juego() {
         <Menu
           perfil={perfil}
           alCambiar={setPerfil}
-          nivel={nivel}
-          alNivel={elegirNivel}
           alJugar={() => {
             estado.velocidad = 0;
             setFase("briefing");
@@ -140,7 +134,7 @@ export default function Juego() {
   }
 
   return (
-    <main className="fixed left-0 top-0 w-full overflow-hidden bg-black" style={{ height: "var(--alto, 100dvh)" }}>
+    <main key={partida} className="fixed left-0 top-0 w-full overflow-hidden bg-black" style={{ height: "var(--alto, 100dvh)" }}>
       <Sonido />
       <Ajustes derecha={fase === "carrera" ? "right-24 [@media(max-height:480px)]:right-20 [@media(max-width:640px)_and_(orientation:portrait)]:right-[5.2rem]" : "right-5"} />
       <div className="absolute inset-0">
@@ -165,6 +159,7 @@ export default function Juego() {
       {fase === "tienda" && (
         <>
           <Marcador />
+          <Billetera conMapa={false} />
           <Objetivo />
           <Tactil />
           {dentro && <Tienda alTerminar={salirDeTienda} />}
@@ -175,9 +170,12 @@ export default function Juego() {
         <>
           <Marcador />
           <Capa
-            alSalir={() => {
-              setNivel(estado.nivel);
-              setFase("menu");
+            alSalir={() => setFase("menu")}
+            alReintentar={() => {
+              // mismo día, enseguida: se rearma la escena desde cero
+              estado.objetivo = "";
+              setPartida((p) => p + 1);
+              setFase("tienda");
             }}
           />
 

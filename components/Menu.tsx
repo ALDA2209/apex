@@ -1,21 +1,20 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { MutableRefObject } from "react";
 import Avatar from "./Avatar";
 import { Canvas, useThree } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import { Vector3, type Group } from "three";
 import Piloto from "./Piloto";
-import { AVATARES, AVATAR_REAL, BARBAS, CASCOS, COLORES, LENTES, MOTOS, PIELES, SIN_CASCO, type Perfil } from "@/lib/perfil";
-import { NIVELES, type Nivel } from "@/lib/niveles";
+import { AVATAR_REAL, BARBAS, CASCOS, COLORES, LENTES, PIELES, SIN_CASCO, type Perfil } from "@/lib/perfil";
+import { NIVELES } from "@/lib/niveles";
+import { DIAS, diaActual, elegirDia, rangoDe, useProgreso } from "@/lib/semana";
 
 type Props = {
   perfil: Perfil;
   alCambiar: (p: Perfil) => void;
   alJugar: () => void;
-  nivel: Nivel;
-  alNivel: (n: Nivel) => void;
 };
 
 const ZOOM_MIN = 7;
@@ -67,11 +66,14 @@ function Vitrina({ perfil }: { perfil: Perfil }) {
   );
 }
 
-const ORDEN_AVATARES = [AVATAR_REAL, 0, 1, 2];
-
 const ETIQUETA = "font-mono text-[11px] uppercase tracking-[0.24em] text-tenue";
 
-export default function Menu({ perfil, alCambiar, alJugar, nivel, alNivel }: Props) {
+export default function Menu({ perfil, alCambiar, alJugar }: Props) {
+  const prog = useProgreso();
+  const dia = diaActual();
+  const rango = rangoDe(prog.xp);
+  const pctXp = rango.siguiente ? Math.min(100, ((prog.xp - rango.desde) / (rango.siguiente - rango.desde)) * 100) : 100;
+  const [demo, setDemo] = useState(false);
   const valido = perfil.nombre.trim().length >= 2;
   const zoom = useRef<ApiZoom | null>(null);
 
@@ -118,52 +120,84 @@ export default function Menu({ perfil, alCambiar, alJugar, nivel, alNivel }: Pro
           />
         </label>
 
-        <div className="anim-subir" style={{ animationDelay: "120ms" }}>
-          <p className={ETIQUETA}>Personaje</p>
-          <div className="mt-3 grid grid-cols-2 gap-2">
-            {ORDEN_AVATARES.map((i) => {
-              const a = AVATARES[i];
+        <div className="anim-subir" style={{ animationDelay: "100ms" }}>
+          <div className="flex items-center justify-between">
+            <p className={ETIQUETA}>Semana {prog.semana}</p>
+            <button
+              type="button"
+              onClick={() => setDemo((d) => !d)}
+              className="font-mono text-[10px] uppercase tracking-[0.18em] text-tenue/60 underline-offset-4 transition hover:text-white hover:underline"
+            >
+              {demo ? "Salir del modo demostración" : "Modo demostración"}
+            </button>
+          </div>
+          <div className="mt-3 grid grid-cols-5 gap-1.5">
+            {DIAS.map((d) => {
+              const actual = prog.dia === d.n;
+              const hecho = prog.hechos.includes(d.n);
+              const bloqueado = !demo && !actual && !hecho;
               return (
-              <button
-                key={a.nombre}
-                type="button"
-                onClick={() => alCambiar({ ...perfil, avatar: i })}
-                aria-pressed={(perfil.avatar ?? 0) === i}
-                className={`min-w-0 rounded-xl border px-2.5 py-2.5 text-left transition sm:px-3 ${
-                  (perfil.avatar ?? 0) === i
-                    ? "border-acento bg-acento/15 text-white"
-                    : "border-white/10 text-tenue hover:border-white/30 hover:text-white"
-                }`}
-              >
-                <span className="block text-sm font-semibold">{a.nombre}</span>
-                <span className="block text-[11px] opacity-70">{a.detalle}</span>
-              </button>
+                <button
+                  key={d.n}
+                  type="button"
+                  disabled={!demo}
+                  onClick={() => elegirDia(d.n)}
+                  aria-pressed={actual}
+                  title={d.nombre}
+                  className={`min-w-0 rounded-xl border px-1 py-2 text-center transition disabled:cursor-default ${
+                    actual
+                      ? "border-acento bg-acento/15 text-white"
+                      : hecho
+                        ? "border-menta/40 text-menta"
+                        : bloqueado
+                          ? "border-white/10 text-tenue/50"
+                          : "border-white/15 text-tenue hover:border-white/40 hover:text-white"
+                  }`}
+                >
+                  <span className="block font-mono text-[11px] font-semibold tracking-[0.12em]">{d.corto}</span>
+                  <span className="block text-[11px] leading-none">{hecho ? "✓" : actual ? "●" : "·"}</span>
+                </button>
               );
             })}
           </div>
-        </div>
+          <p className="mt-3 text-sm font-semibold text-white">
+            {dia.nombre} · {NIVELES.find((n) => n.n === dia.nivel)?.nombre.split(" · ")[1]}
+          </p>
+          <p className="text-[12px] text-tenue">{dia.tema}</p>
 
-        <div className="anim-subir" style={{ animationDelay: "140ms" }}>
-          <p className={ETIQUETA}>Mototaxi</p>
-          <div className="mt-3 grid grid-cols-3 gap-2">
-            {MOTOS.map((m, i) => (
-              <button
-                key={m.nombre}
-                type="button"
-                onClick={() => alCambiar({ ...perfil, moto: i })}
-                aria-pressed={(perfil.moto ?? 0) === i}
-                className={`min-w-0 rounded-xl border px-2.5 py-2.5 text-left transition sm:px-3 ${
-                  (perfil.moto ?? 0) === i
-                    ? "border-acento bg-acento/15 text-white"
-                    : "border-white/10 text-tenue hover:border-white/30 hover:text-white"
-                }`}
-              >
-                <span className="block text-sm font-semibold">{m.nombre}</span>
-                <span className="block text-[11px] opacity-70">{m.detalle}</span>
-              </button>
-            ))}
+          <div className="mt-3 flex items-center gap-4 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3">
+            <div>
+              <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-tenue">Billetera</p>
+              <p className="text-xl font-semibold" style={{ color: "#fbbf24" }}>
+                S/ {prog.dinero}
+              </p>
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="font-mono text-[10px] uppercase tracking-[0.22em]" style={{ color: "#c4b5fd" }}>
+                {rango.nombre} · {prog.xp} XP
+              </p>
+              <span className="mt-1.5 block h-1.5 overflow-hidden rounded-full bg-white/15">
+                <span
+                  className="block h-full rounded-full"
+                  style={{ width: `${pctXp}%`, background: "#a78bfa", boxShadow: "0 0 8px #a78bfa" }}
+                />
+              </span>
+              <p className="mt-1 text-[11px] text-tenue">
+                {rango.siguiente ? `${rango.siguiente - prog.xp} XP para ser ${rango.nombreSiguiente}` : "Rango máximo"}
+              </p>
+            </div>
           </div>
         </div>
+
+        <button
+          type="submit"
+          disabled={!valido}
+          className="anim-subir group flex items-center justify-between rounded-2xl bg-acento px-6 py-4 text-left font-semibold text-[#1a0d05] transition enabled:hover:brightness-110 enabled:active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40"
+          style={{ animationDelay: "140ms" }}
+        >
+          <span>{valido ? `Empezar el ${dia.nombre.toLowerCase()}` : "Escribe tu nombre para entrar"}</span>
+          <span className="font-mono text-sm opacity-70 transition group-hover:translate-x-1">→</span>
+        </button>
 
         <div className="anim-subir" style={{ animationDelay: "160ms" }}>
           <p className={ETIQUETA}>Color del mototaxi</p>
@@ -262,38 +296,6 @@ export default function Menu({ perfil, alCambiar, alJugar, nivel, alNivel }: Pro
             </div>
           ))}
         </div>
-
-        <div className="anim-subir" style={{ animationDelay: "280ms" }}>
-          <p className={ETIQUETA}>Nivel</p>
-          <div className="mt-3 flex flex-col gap-2">
-            {NIVELES.map((n) => (
-              <button
-                key={n.n}
-                type="button"
-                onClick={() => alNivel(n.n)}
-                aria-pressed={nivel === n.n}
-                className={`rounded-xl border px-4 py-2.5 text-left transition ${
-                  nivel === n.n
-                    ? "border-acento bg-acento/15 text-white"
-                    : "border-white/10 text-tenue hover:border-white/30 hover:text-white"
-                }`}
-              >
-                <span className="block text-sm font-semibold">{n.nombre}</span>
-                <span className="block text-[12px] opacity-70">{n.detalle}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <button
-          type="submit"
-          disabled={!valido}
-          className="anim-subir group flex items-center justify-between rounded-2xl bg-acento px-6 py-4 text-left font-semibold text-[#1a0d05] transition enabled:hover:brightness-110 enabled:active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40"
-          style={{ animationDelay: "320ms" }}
-        >
-          <span>{valido ? "Entrar a la pista" : "Escribe tu nombre para entrar"}</span>
-          <span className="font-mono text-sm opacity-70 transition group-hover:translate-x-1">→</span>
-        </button>
 
         <p className="font-mono text-[11px] text-tenue/80">A · D o ← → para cambiar de carril</p>
         <p className="text-[10px] text-tenue/50">Modelos 3D del mototaxi y del personaje generados con Meshy (CC BY 4.0).</p>

@@ -1,21 +1,32 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { callar, hablar, sirena } from "@/lib/audio";
 import { estado, LIMITE_FALTAS, puntosFaltas } from "@/lib/estado";
 import { preguntaDe, PUENTES } from "@/lib/puentes";
+import { diaActual, perderDia } from "@/lib/semana";
 
 const JET = "var(--font-jetbrains)";
 const BRIC = "var(--font-bricolage)";
 
 /* Pantalla de arresto: juntaste 3 puntos de infracción ante la autoridad y pierdes la partida. */
-export default function Arresto({ alSalir }: { alSalir: () => void }) {
+export default function Arresto({ alSalir, alReintentar }: { alSalir: () => void; alReintentar: () => void }) {
   const ultima = estado.faltas[estado.faltas.length - 1];
   const oficial = PUENTES[ultima?.puente ?? 0]?.oficial ?? "El oficial";
 
+  /* El día se pierde: sin paga y con multa, pero lo que respondiste bien te deja experiencia. */
+  const [castigo, setCastigo] = useState<{ multa: number; xp: number } | null>(null);
+  const cobrado = useRef(false);
+  useEffect(() => {
+    if (cobrado.current) return;
+    cobrado.current = true;
+    setCastigo(perderDia(estado.decisiones.filter((d) => d.correcta).length));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     sirena(3);
-    hablar(`${oficial}. Queda detenido. Reunió demasiadas infracciones. La partida termina aquí.`, "oficial");
+    hablar(`${oficial}. Queda detenido. Reunió demasiadas infracciones. El día termina aquí.`, "oficial");
     return () => callar();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -47,20 +58,35 @@ export default function Arresto({ alSalir }: { alSalir: () => void }) {
           Arrestado
         </h2>
         <p className="mt-3 max-w-xl text-base leading-relaxed text-white/80 sm:text-lg" style={{ fontFamily: BRIC }}>
-          Respondiste mal varias veces ante la autoridad y el oficial te detuvo. Aquí la partida termina. En la vida real,
+          Respondiste mal varias veces ante la autoridad y el oficial te detuvo. Aquí termina tu día. En la vida real,
           conocer las reglas antes de salir te ahorra multas, retención de mercadería y problemas legales.
         </p>
 
+        {castigo && (
+          <p className="mt-4 text-sm text-white/85" style={{ fontFamily: BRIC }}>
+            <b style={{ color: "#fb7185" }}>{diaActual().nombre} perdido:</b> {castigo.multa > 0 ? `no cobras el día y pagas una multa de S/ ${castigo.multa}.` : "no cobras el día. Aún no tenías dinero, así que no hay multa."}
+            {castigo.xp > 0 && <> Lo que respondiste bien te deja +{castigo.xp} XP.</>}
+          </p>
+        )}
         <div className="mt-5 flex flex-wrap gap-3">
           <button
             type="button"
-            onClick={alSalir}
+            onClick={alReintentar}
             className="rounded-full px-6 py-3 text-[11px] uppercase tracking-[0.25em] transition hover:brightness-110"
             style={{ background: "#ff7a3d", color: "#1a0d05", fontFamily: JET }}
           >
-            Volver a intentarlo
+            Reintentar el {diaActual().nombre.toLowerCase()}
+          </button>
+          <button
+            type="button"
+            onClick={alSalir}
+            className="rounded-full border border-white/20 px-6 py-3 text-[11px] uppercase tracking-[0.25em] text-white transition hover:border-white/50"
+            style={{ fontFamily: JET }}
+          >
+            Volver al menú
           </button>
         </div>
+
         <p className="mt-6 text-[10px] uppercase tracking-[0.3em] text-white/60" style={{ fontFamily: JET }}>
           Lo que pasó y lo que debías responder
         </p>

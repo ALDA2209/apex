@@ -5,6 +5,7 @@ import Parada from "@/components/Parada";
 import Servicio from "@/components/Servicio";
 import Meta from "@/components/Meta";
 import Arresto from "@/components/Arresto";
+import Billetera from "@/components/Billetera";
 import Ruta from "@/components/Ruta";
 import { estado, LIMITE_FALTAS, useBotiquines, useDentro, useFaltas, useFase, useIntegridad, useKits, useRiesgo, useSalud } from "@/lib/estado";
 import Objetivo from "@/components/Objetivo";
@@ -125,7 +126,7 @@ function Cansancio() {
   );
 }
 
-export default function Capa({ alSalir }: { alSalir: () => void }) {
+export default function Capa({ alSalir, alReintentar }: { alSalir: () => void; alReintentar: () => void }) {
   const fase = useFase();
   const dentro = useDentro();
   return (
@@ -133,6 +134,7 @@ export default function Capa({ alSalir }: { alSalir: () => void }) {
       <Riesgo />
       <Estado />
       <Infracciones />
+      <Billetera />
       <Ruta />
       <Cansancio />
       <Velocimetro />
@@ -141,7 +143,7 @@ export default function Capa({ alSalir }: { alSalir: () => void }) {
       {fase === "parada" && <Parada />}
       {fase === "servicio" && dentro && <Servicio />}
       {fase === "meta" && <Meta alSalir={alSalir} />}
-      {fase === "arrestado" && <Arresto alSalir={alSalir} />}
+      {fase === "arrestado" && <Arresto alSalir={alSalir} alReintentar={alReintentar} />}
     </>
   );
 }
