@@ -7,7 +7,7 @@ import Meta from "@/components/Meta";
 import Arresto from "@/components/Arresto";
 import Billetera from "@/components/Billetera";
 import Ruta from "@/components/Ruta";
-import { estado, LIMITE_FALTAS, useBotiquines, useDentro, useFaltas, useFase, useIntegridad, useKits, useRiesgo, useSalud } from "@/lib/estado";
+import { estado, limiteFaltas, useBotiquines, useDentro, useFaltas, useFase, useIntegridad, useKits, useRiesgo, useSalud } from "@/lib/estado";
 import Objetivo from "@/components/Objetivo";
 import Velocimetro from "@/components/Velocimetro";
 
@@ -39,7 +39,7 @@ function Riesgo() {
 /* Puntos de infracción: con 3 el policía te arresta. */
 function Infracciones() {
   const faltas = useFaltas();
-  const grave = faltas >= LIMITE_FALTAS - 1 && faltas > 0;
+  const grave = faltas >= limiteFaltas() - 1 && faltas > 0;
   return (
     <div
       className="absolute left-5 top-[14.2rem] z-10 flex items-center gap-2.5 rounded-full border bg-black/40 px-4 py-1.5 backdrop-blur [@media(max-height:480px)]:left-[14.8rem] [@media(max-height:480px)]:top-10 [@media(max-height:480px)]:px-3 [@media(max-height:480px)]:py-1 [@media(max-width:640px)_and_(orientation:portrait)]:left-2 [@media(max-width:640px)_and_(orientation:portrait)]:top-[14.4rem]"
@@ -48,7 +48,7 @@ function Infracciones() {
     >
       <span className="text-[10px] uppercase tracking-[0.25em] text-white/60">Infracciones</span>
       <span className="flex items-center gap-1.5">
-        {Array.from({ length: LIMITE_FALTAS }).map((_, i) => (
+        {Array.from({ length: limiteFaltas() }).map((_, i) => (
           <span
             key={i}
             className="h-2.5 w-2.5 rounded-full"

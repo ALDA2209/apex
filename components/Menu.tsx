@@ -1,5 +1,6 @@
 "use client";
 
+import TiendaMenu from "@/components/TiendaMenu";
 import { useEffect, useRef, useState } from "react";
 import type { MutableRefObject } from "react";
 import Avatar from "./Avatar";
@@ -7,7 +8,7 @@ import { Canvas, useThree } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import { Vector3, type Group } from "three";
 import Piloto from "./Piloto";
-import { AVATAR_REAL, BARBAS, CASCOS, COLORES, LENTES, PIELES, SIN_CASCO, type Perfil } from "@/lib/perfil";
+import { SIN_CASCO, type Perfil } from "@/lib/perfil";
 import { NIVELES } from "@/lib/niveles";
 import { DIAS, diaActual, elegirDia, rangoDe, useProgreso } from "@/lib/semana";
 
@@ -74,6 +75,8 @@ export default function Menu({ perfil, alCambiar, alJugar }: Props) {
   const rango = rangoDe(prog.xp);
   const pctXp = rango.siguiente ? Math.min(100, ((prog.xp - rango.desde) / (rango.siguiente - rango.desde)) * 100) : 100;
   const [demo, setDemo] = useState(false);
+  const [vista, setVista] = useState<"inicio" | "tienda">("inicio");
+  const [prueba, setPrueba] = useState<Perfil | null>(null);
   const valido = perfil.nombre.trim().length >= 2;
   const zoom = useRef<ApiZoom | null>(null);
 
@@ -97,6 +100,10 @@ export default function Menu({ perfil, alCambiar, alJugar }: Props) {
         }}
         className="relative z-10 flex min-w-0 flex-col justify-center gap-6 px-5 py-8 sm:gap-7 sm:px-7 sm:py-10 md:px-14"
       >
+        {vista === "tienda" ? (
+          <TiendaMenu perfil={perfil} alCambiar={alCambiar} alProbar={setPrueba} alVolver={() => setVista("inicio")} />
+        ) : (
+          <>
         <header className="anim-subir">
           <p className="font-mono text-[11px] uppercase tracking-[0.32em] text-menta">
             Cultura tributaria y aduanera
@@ -199,106 +206,22 @@ export default function Menu({ perfil, alCambiar, alJugar }: Props) {
           <span className="font-mono text-sm opacity-70 transition group-hover:translate-x-1">→</span>
         </button>
 
-        <div className="anim-subir" style={{ animationDelay: "160ms" }}>
-          <p className={ETIQUETA}>Color del mototaxi</p>
-          <div className="mt-3 flex flex-wrap gap-3">
-            {COLORES.map((c) => {
-              const activo = perfil.color === c.valor;
-              return (
-                <button
-                  key={c.valor}
-                  type="button"
-                  aria-label={c.nombre}
-                  title={c.nombre}
-                  onClick={() => alCambiar({ ...perfil, color: c.valor })}
-                  className={`h-9 w-9 rounded-full transition ${
-                    activo
-                      ? "scale-110 ring-2 ring-white ring-offset-2 ring-offset-[#0c1229]"
-                      : "opacity-80 hover:opacity-100"
-                  }`}
-                  style={{ backgroundColor: c.valor }}
-                />
-              );
-            })}
-            <label
-              title="Elegir otro color"
-              className={`relative h-9 w-9 cursor-pointer rounded-full transition ${
-                COLORES.some((c) => c.valor === perfil.color)
-                  ? "opacity-80 hover:opacity-100"
-                  : "scale-110 ring-2 ring-white ring-offset-2 ring-offset-[#0c1229]"
-              }`}
-              style={{
-                background: COLORES.some((c) => c.valor === perfil.color)
-                  ? "conic-gradient(red, yellow, lime, aqua, blue, magenta, red)"
-                  : perfil.color,
-              }}
-            >
-              <input
-                type="color"
-                aria-label="Elegir otro color"
-                value={perfil.color}
-                onChange={(e) => alCambiar({ ...perfil, color: e.target.value })}
-                className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-              />
-            </label>
-          </div>
-        </div>
-
-        {perfil.avatar !== AVATAR_REAL && (
-        <div className="anim-subir" style={{ animationDelay: "200ms" }}>
-          <p className={ETIQUETA}>Tono de piel</p>
-          <div className="mt-3 flex flex-wrap gap-3">
-            {PIELES.map((p, i) => (
-              <button
-                key={p.valor}
-                type="button"
-                aria-label={p.nombre}
-                title={p.nombre}
-                onClick={() => alCambiar({ ...perfil, piel: i })}
-                className={`h-9 w-9 rounded-full transition ${
-                  perfil.piel === i
-                    ? "scale-110 ring-2 ring-white ring-offset-2 ring-offset-[#0c1229]"
-                    : "opacity-80 hover:opacity-100"
-                }`}
-                style={{ backgroundColor: p.valor }}
-              />
-            ))}
-          </div>
-        </div>
-        )}
-
-        <div className="anim-subir" style={{ animationDelay: "240ms" }}>
-          <p className={ETIQUETA}>Accesorios (opcional)</p>
-          {[
-            { titulo: "Casco", opciones: ["Sin casco", ...CASCOS], valores: [SIN_CASCO, 0, 1, 2, 3], actual: perfil.casco, campo: "casco" as const },
-            { titulo: "Lentes", opciones: LENTES, valores: [0, 1, 2], actual: perfil.lentes ?? 0, campo: "lentes" as const },
-            { titulo: "Barba", opciones: BARBAS, valores: [0, 1, 2], actual: perfil.barba ?? 0, campo: "barba" as const },
-          ].map((g) => (
-            <div key={g.titulo} className="mt-3">
-              <p className="mb-1.5 text-xs text-tenue">{g.titulo}</p>
-              <div className="grid grid-cols-3 gap-2">
-                {g.opciones.map((nombre, k) => (
-                  <button
-                    key={nombre}
-                    type="button"
-                    onClick={() => alCambiar({ ...perfil, [g.campo]: g.valores[k] })}
-                    aria-pressed={g.actual === g.valores[k]}
-                    className={`rounded-xl border px-2 py-2.5 text-sm transition ${
-                      g.actual === g.valores[k]
-                        ? "border-acento bg-acento/15 text-white"
-                        : "border-white/10 text-tenue hover:border-white/30 hover:text-white"
-                    }`}
-                  >
-                    {nombre}
-                  </button>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
+        <button
+          type="button"
+          onClick={() => setVista("tienda")}
+          className="anim-subir flex items-center justify-between rounded-2xl border border-white/15 px-6 py-3.5 text-left font-semibold text-white transition hover:border-white/40 hover:bg-white/[0.04] active:scale-[0.99]"
+          style={{ animationDelay: "160ms" }}
+        >
+          <span>Tienda</span>
+          <span className="font-mono text-sm" style={{ color: "#fbbf24" }}>
+            S/ {prog.dinero}
+          </span>
+        </button>
 
         <p className="font-mono text-[11px] text-tenue/80">A · D o ← → para cambiar de carril</p>
         <p className="text-[10px] text-tenue/50">Modelos 3D del mototaxi y del personaje generados con Meshy (CC BY 4.0).</p>
+          </>
+        )}
       </form>
 
       <section className="sticky top-0 z-20 order-first h-[40vh] min-h-[260px] bg-[#0b0820] md:order-none md:h-screen md:min-h-0 md:self-start md:bg-transparent">
@@ -306,7 +229,7 @@ export default function Menu({ perfil, alCambiar, alJugar }: Props) {
           <hemisphereLight args={["#9a7bff", "#1a1030", 1.1]} />
           <directionalLight position={[3, 5, 2]} intensity={2.2} color="#ffb27a" />
           <directionalLight position={[-4, 3, -3]} intensity={1.4} color="#6d7bff" />
-          <Vitrina perfil={perfil} />
+          <Vitrina perfil={prueba ?? perfil} />
           {/* solo gira con el mouse (o el dedo): arrastra para ver todo alrededor */}
           <ZoomBotones api={zoom} />
           <OrbitControls

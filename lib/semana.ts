@@ -160,6 +160,15 @@ export function siguienteDia() {
   avisar();
 }
 
+/* Comprar en la tienda: se descuenta de la billetera. */
+export function comprar(id: string, precio: number): boolean {
+  if (progreso.compras.includes(id) || progreso.dinero < precio) return false;
+  progreso = { ...progreso, dinero: progreso.dinero - precio, compras: [...progreso.compras, id] };
+  guardar();
+  avisar();
+  return true;
+}
+
 export function suscribirProgreso(f: () => void) {
   oyentes.add(f);
   return () => {

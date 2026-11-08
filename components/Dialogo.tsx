@@ -3,7 +3,7 @@
 import { callar, hablar } from "@/lib/audio";
 import { CONSULTAS } from "@/lib/abogado";
 import { useCallback, useEffect, useState } from "react";
-import { concluirPuente, decidir, estado, evaluarArresto, LIMITE_FALTAS, puntosFaltas, useFase, usePuente } from "@/lib/estado";
+import { concluirPuente, decidir, estado, evaluarArresto, limiteFaltas, puntosFaltas, useFase, usePuente } from "@/lib/estado";
 import { PUENTES, puntosDe, type Pregunta as DatosPregunta, type Puente as DatosPuente } from "@/lib/puentes";
 import { TIEMPO_POR_NIVEL } from "@/lib/niveles";
 
@@ -81,7 +81,7 @@ function Pregunta({
   }, [limite, sel, q, elegir]);
 
   const puntos = puntosFaltas();
-  const arrestado = op !== null && puntos >= LIMITE_FALTAS;
+  const arrestado = op !== null && puntos >= limiteFaltas();
   const textoVoz = op ? op.oficial + (arrestado ? " Queda detenido." : "") : q.pregunta(trato);
   useEffect(() => {
     hablar(textoVoz, "oficial");
@@ -215,11 +215,11 @@ function Pregunta({
               >
                 <p className="text-[11px] uppercase tracking-[0.22em]" style={{ color: "#fb7185" }}>
                   {arrestado
-                    ? "Quedas arrestado · pierdes la partida"
-                    : puntos === LIMITE_FALTAS - 1
+                    ? "Quedas arrestado · pierdes el día"
+                    : puntos === limiteFaltas() - 1
                       ? "¡Última advertencia! Una infracción más y te arrestan"
                       : "Infracción registrada"}{" "}
-                  · {puntos}/{LIMITE_FALTAS}
+                  · {puntos}/{limiteFaltas()}
                 </p>
                 <p className="mt-1 text-xs text-white/75" style={{ fontFamily: BRIC }}>
                   {puntosDe(op) === 2

@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { callar, hablar } from "@/lib/audio";
+import { leerProgreso } from "@/lib/semana";
+import { tieneMejora } from "@/lib/tienda";
 import { ABOGADO, CONSULTAS, COSTO_CONSULTA, NOTA_ABOGADO, RIESGO_CONSULTA, type Consulta } from "@/lib/abogado";
 import { consultarAbogado, estado, salirDeTienda, useSoles } from "@/lib/estado";
 import type { Servicio } from "@/lib/ruta";
@@ -110,7 +112,7 @@ export default function Estudio({ s }: { s: Servicio }) {
                     color: pagada ? "#5eead4" : "#1a1205",
                   }}
                 >
-                  {pagada ? "Escuchar de nuevo" : `Consultar · S/ ${COSTO_CONSULTA}`}
+                  {pagada ? "Escuchar de nuevo" : estado.consultas.length === 0 && tieneMejora(leerProgreso().compras, "consulta") ? "Consultar · GRATIS" : `Consultar · S/ ${COSTO_CONSULTA}`}
                 </span>
               </button>
             );

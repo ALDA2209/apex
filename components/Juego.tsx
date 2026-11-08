@@ -18,6 +18,7 @@ import Billetera from "@/components/Billetera";
 import { cargarProgreso, nivelDelDia, useProgreso } from "@/lib/semana";
 import { despertarIA } from "@/lib/ia";
 import { estado, prepararPartida, salirDeTienda, useDentro, useObjetivo, type Genero } from "@/lib/estado";
+import { perfilPermitido } from "@/lib/tienda";
 import { AVATAR_REAL, PERFIL_INICIAL, type Perfil } from "@/lib/perfil";
 
 type Fase = "intro" | "menu" | "briefing" | "tienda" | "carrera";
@@ -49,6 +50,13 @@ export default function Juego() {
   useEffect(() => {
     estado.nivel = nivelDelDia(progreso.dia);
   }, [progreso.dia]);
+
+  /* Solo puedes llevar lo que es gratis o que compraste en la tienda. */
+  useEffect(() => {
+    if (!cargado) return;
+    const ok = perfilPermitido(perfil, progreso.compras);
+    if (JSON.stringify(ok) !== JSON.stringify(perfil)) setPerfil(ok);
+  }, [cargado, perfil, progreso.compras]);
 
   useEffect(() => {
     if (!cargado) return;

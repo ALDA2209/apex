@@ -1,5 +1,7 @@
 import { useSyncExternalStore } from "react";
 import { CANSANCIO_POR_NIVEL, type Nivel } from "@/lib/niveles";
+import { leerProgreso } from "@/lib/semana";
+import { tieneMejora } from "@/lib/tienda";
 
 export type Genero = "el" | "ella";
 export type FasePuente = "libre" | "alto" | "dialogo" | "regreso" | "parada" | "servicio" | "meta" | "arrestado";
@@ -7,8 +9,8 @@ export type Decision = { puente: number; k: number; opcion: number; correcta: bo
 /** Una infracción: respuesta incorrecta ante la autoridad. peso 1 = error, 2 = delito. */
 export type Falta = { puente: number; k: number; peso: number };
 
-/** Con estos puntos de infracción el policía te arresta y pierdes la partida. */
-export const LIMITE_FALTAS = 3;
+/** Con estos puntos de infracción el policía te arresta (4 si compraste "Un punto de paciencia"). */
+export const limiteFaltas = () => (tieneMejora(leerProgreso().compras, "paciencia") ? 4 : 3);
 export type Objetivo = "" | "bodega" | "local" | "oficial" | "volver" | "listo";
 export type TipoLugar = "garaje" | "servicio" | "puente";
 export type Compra = { lugar: string; monto: number; conComprobante: boolean };
@@ -165,7 +167,7 @@ export const puntosFaltas = () => estado.faltas.reduce((t, f) => t + f.peso, 0);
 
 /* Después de cada respuesta: si ya juntaste 3 puntos de infracción, el policía te arresta. */
 export function evaluarArresto(): boolean {
-  if (puntosFaltas() < LIMITE_FALTAS) return false;
+  if (puntosFaltas() < limiteFaltas()) return false;
   estado.velocidad = 0;
   estado.fase = "arrestado";
   avisar();
@@ -239,6 +241,8 @@ export function pagarServicio(
 
 /* Pagas una consulta al abogado: bajas tu riesgo y te queda anotada para los puentes. */
 export function consultarAbogado(id: string, costo: number, riesgo: number) {
+  const gratis = estado.consultas.length === 0 && tieneMejora(leerProgreso().compras, "consulta");
+  if (gratis) costo = 0;
   if (estado.consultas.includes(id) || estado.soles < costo) return false;
   estado.soles -= costo;
   estado.gastoAbogado += costo;
@@ -289,6 +293,10 @@ export function prepararPartida() {
   estado.soles = CAPITAL;
   estado.apie = true;
   estado.objetivo = "bodega";
+  /* Mejoras compradas en la tienda del menú. */
+  const compras = leerProgreso().compras;
+  if (tieneMejora(compras, "kit")) estado.kits += 1;
+  if (tieneMejora(compras, "botiquin")) estado.botiquines += 1;
   avisar();
 }
 

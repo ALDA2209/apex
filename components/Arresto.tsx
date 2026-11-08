@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { callar, hablar, sirena } from "@/lib/audio";
-import { estado, LIMITE_FALTAS, puntosFaltas } from "@/lib/estado";
+import { estado, limiteFaltas, puntosFaltas } from "@/lib/estado";
 import { preguntaDe, PUENTES } from "@/lib/puentes";
 import { diaActual, perderDia } from "@/lib/semana";
 
@@ -52,7 +52,7 @@ export default function Arresto({ alSalir, alReintentar }: { alSalir: () => void
 
       <div className="mx-auto flex min-h-full max-w-3xl flex-col justify-center px-4 py-8 sm:py-12">
         <p className="text-[10px] uppercase tracking-[0.35em]" style={{ color: "#fb7185", fontFamily: JET }}>
-          {oficial} · {puntosFaltas()}/{LIMITE_FALTAS} puntos de infracción
+          {oficial} · {puntosFaltas()}/{limiteFaltas()} puntos de infracción
         </p>
         <h2 className="mt-2 text-4xl font-bold leading-none text-white sm:text-6xl" style={{ fontFamily: BRIC }}>
           Arrestado
