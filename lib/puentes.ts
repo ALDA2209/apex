@@ -13,8 +13,8 @@ export type Opcion = {
 export type Pregunta = {
   pregunta: (trato: string) => string;
   opciones: Opcion[];
-  /** Todas las preguntas las crea la IA (Gemini) para cada partida. */
-  origen?: "ia";
+  /** "ia" = la creó Gemini para esta partida; "respaldo" = salió del banco del juego (sin etiqueta de IA). */
+  origen?: "ia" | "respaldo";
 };
 
 export type Puente = {
@@ -27,9 +27,11 @@ export type Puente = {
   banda: string;
   pregunta: (trato: string) => string;
   opciones: Opcion[];
-  origen?: "ia";
+  origen?: "ia" | "respaldo";
   /** Segunda pregunta del interrogatorio en este puente. */
   extra?: Pregunta;
+  /** Respaldo, nivel 3: la pregunta depende de lo que hiciste antes (el fiscal "recuerda"). */
+  resolver?: (ctx: { sinComprobante: number }) => Pick<Puente, "pregunta" | "opciones">;
 };
 
 /* Datos fijos de cada puente (oficial, lugar, distancia). Las preguntas las pone la IA al empezar. */

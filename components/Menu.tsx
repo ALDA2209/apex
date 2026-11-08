@@ -4,6 +4,7 @@ import TiendaMenu from "@/components/TiendaMenu";
 import InventarioMenu from "@/components/InventarioMenu";
 import EstadoIA from "@/components/EstadoIA";
 import { iaListaPara, precargarIA, prepararNivel } from "@/lib/niveles";
+import { prepararRespaldo } from "@/lib/respaldo";
 import { leerEstadoIA, suscribirEstadoIA } from "@/lib/ia";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { MutableRefObject } from "react";
@@ -112,7 +113,7 @@ export default function Menu({ perfil, alCambiar, alJugar }: Props) {
       <form
         onSubmit={(e) => {
           e.preventDefault();
-          /* Sin preguntas de la IA no se empieza: no hay preguntas de respaldo. */
+          /* Con la IA lista se empieza con sus preguntas; si falla, está el botón "Jugar con preguntas de respaldo". */
           if (valido && prepararNivel(dia.nivel)) alJugar();
         }}
         className="relative z-10 flex min-w-0 flex-col justify-center gap-6 px-5 py-8 sm:gap-7 sm:px-7 sm:py-10 md:px-14"
@@ -265,6 +266,20 @@ export default function Menu({ perfil, alCambiar, alJugar }: Props) {
             </button>
           );
         })()}
+
+        {valido && !iaLista && (ia.fase === "error" || ia.fase === "sin-url") && (
+          <button
+            type="button"
+            onClick={() => {
+              prepararRespaldo(dia.nivel);
+              alJugar();
+            }}
+            className="anim-subir -mt-2 flex items-center justify-between rounded-2xl border border-white/20 px-6 py-3.5 text-left text-[14px] font-semibold text-white transition hover:border-white/50 hover:bg-white/[0.05] active:scale-[0.99]"
+          >
+            <span>Jugar con preguntas de respaldo</span>
+            <span className="font-mono text-sm opacity-70">→</span>
+          </button>
+        )}
 
         <div className="anim-subir grid grid-cols-2 gap-2" style={{ animationDelay: "160ms" }}>
           <button

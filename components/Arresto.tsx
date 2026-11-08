@@ -6,6 +6,7 @@ import { estado, limiteFaltas, puntosFaltas } from "@/lib/estado";
 import { preguntaDe, PUENTES } from "@/lib/puentes";
 import { diaActual, perderDia } from "@/lib/semana";
 import { iaListaPara, precargarIA, prepararNivel } from "@/lib/niveles";
+import { prepararRespaldo } from "@/lib/respaldo";
 import { leerEstadoIA, suscribirEstadoIA } from "@/lib/ia";
 
 const JET = "var(--font-jetbrains)";
@@ -91,6 +92,19 @@ export default function Arresto({ alSalir, alReintentar }: { alSalir: () => void
           >
             {iaLista ? `Reintentar el ${diaActual().nombre.toLowerCase()}` : ia.fase === "error" ? "Reintentar con la IA" : "La IA prepara tus preguntas…"}
           </button>
+          {!iaLista && (ia.fase === "error" || ia.fase === "sin-url") && (
+            <button
+              type="button"
+              onClick={() => {
+                prepararRespaldo(estado.nivel);
+                alReintentar();
+              }}
+              className="rounded-full border border-white/30 px-6 py-3 text-[11px] uppercase tracking-[0.25em] text-white transition hover:border-white/60"
+              style={{ fontFamily: JET }}
+            >
+              Jugar con preguntas de respaldo
+            </button>
+          )}
           <button
             type="button"
             onClick={alSalir}
