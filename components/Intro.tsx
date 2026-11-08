@@ -452,7 +452,7 @@ function Titulo({ alTerminar }: { alTerminar: () => void }) {
 
       <div className="relative" style={aparece(300)}>
         <h1
-          className="relative overflow-hidden text-7xl font-extrabold tracking-tight sm:text-[10rem]"
+          className="relative overflow-hidden text-8xl font-extrabold tracking-tight sm:text-[10rem]"
           style={{
             fontFamily: "var(--font-unbounded)",
             backgroundImage:

@@ -125,7 +125,7 @@ export default function Tactil() {
     <>
       {vertical && (
         <div
-          className="pointer-events-none absolute inset-x-0 top-24 z-20 flex justify-center px-4"
+          className="pointer-events-none absolute inset-x-0 bottom-44 z-20 flex justify-center px-4"
           style={{ fontFamily: JET }}
         >
           <div className="rounded-full border border-white/20 bg-black/70 px-4 py-2 text-[11px] uppercase tracking-[0.2em] text-white">

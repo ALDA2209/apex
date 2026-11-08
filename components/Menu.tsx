@@ -87,13 +87,13 @@ export default function Menu({ perfil, alCambiar, alJugar, nivel, alNivel }: Pro
   }, []);
 
   return (
-    <div className="fondo-menu grid min-h-screen w-screen md:grid-cols-[minmax(380px,480px)_1fr]">
+    <div className="fondo-menu flex min-h-screen w-full max-w-full flex-col overflow-x-clip md:grid md:grid-cols-[minmax(380px,480px)_1fr]">
       <form
         onSubmit={(e) => {
           e.preventDefault();
           if (valido) alJugar();
         }}
-        className="relative z-10 flex flex-col justify-center gap-7 px-7 py-10 md:px-14"
+        className="relative z-10 flex min-w-0 flex-col justify-center gap-6 px-5 py-8 sm:gap-7 sm:px-7 sm:py-10 md:px-14"
       >
         <header className="anim-subir">
           <p className="font-mono text-[11px] uppercase tracking-[0.32em] text-menta">
@@ -129,7 +129,7 @@ export default function Menu({ perfil, alCambiar, alJugar, nivel, alNivel }: Pro
                 type="button"
                 onClick={() => alCambiar({ ...perfil, avatar: i })}
                 aria-pressed={(perfil.avatar ?? 0) === i}
-                className={`rounded-xl border px-3 py-2.5 text-left transition ${
+                className={`min-w-0 rounded-xl border px-2.5 py-2.5 text-left transition sm:px-3 ${
                   (perfil.avatar ?? 0) === i
                     ? "border-acento bg-acento/15 text-white"
                     : "border-white/10 text-tenue hover:border-white/30 hover:text-white"
@@ -152,7 +152,7 @@ export default function Menu({ perfil, alCambiar, alJugar, nivel, alNivel }: Pro
                 type="button"
                 onClick={() => alCambiar({ ...perfil, moto: i })}
                 aria-pressed={(perfil.moto ?? 0) === i}
-                className={`rounded-xl border px-3 py-2.5 text-left transition ${
+                className={`min-w-0 rounded-xl border px-2.5 py-2.5 text-left transition sm:px-3 ${
                   (perfil.moto ?? 0) === i
                     ? "border-acento bg-acento/15 text-white"
                     : "border-white/10 text-tenue hover:border-white/30 hover:text-white"
@@ -167,7 +167,7 @@ export default function Menu({ perfil, alCambiar, alJugar, nivel, alNivel }: Pro
 
         <div className="anim-subir" style={{ animationDelay: "160ms" }}>
           <p className={ETIQUETA}>Color del mototaxi</p>
-          <div className="mt-3 flex gap-3">
+          <div className="mt-3 flex flex-wrap gap-3">
             {COLORES.map((c) => {
               const activo = perfil.color === c.valor;
               return (
@@ -213,7 +213,7 @@ export default function Menu({ perfil, alCambiar, alJugar, nivel, alNivel }: Pro
         {perfil.avatar !== AVATAR_REAL && (
         <div className="anim-subir" style={{ animationDelay: "200ms" }}>
           <p className={ETIQUETA}>Tono de piel</p>
-          <div className="mt-3 flex gap-3">
+          <div className="mt-3 flex flex-wrap gap-3">
             {PIELES.map((p, i) => (
               <button
                 key={p.valor}
@@ -299,7 +299,7 @@ export default function Menu({ perfil, alCambiar, alJugar, nivel, alNivel }: Pro
         <p className="text-[10px] text-tenue/50">Modelos 3D del mototaxi y del personaje generados con Meshy (CC BY 4.0).</p>
       </form>
 
-      <section className="relative min-h-[46vh] md:min-h-screen">
+      <section className="sticky top-0 z-20 order-first h-[40vh] min-h-[260px] bg-[#0b0820] md:order-none md:h-screen md:min-h-0 md:self-start md:bg-transparent">
         <Canvas camera={{ position: [5.4, 4.3, 8.9], fov: 38 }} dpr={[1, 2]}>
           <hemisphereLight args={["#9a7bff", "#1a1030", 1.1]} />
           <directionalLight position={[3, 5, 2]} intensity={2.2} color="#ffb27a" />
