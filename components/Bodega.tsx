@@ -17,10 +17,19 @@ function crearLetrero(linea1: string, linea2: string) {
   g.textAlign = "center";
   g.textBaseline = "middle";
   g.fillStyle = "#ff7a3d";
-  g.font = "800 92px sans-serif";
+  /* si el texto es largo, se achica para que quepa dentro del marco */
+  const ajustar = (txt: string, peso: number, tam: number) => {
+    let t = tam;
+    g.font = `${peso} ${t}px sans-serif`;
+    while (t > 24 && g.measureText(txt).width > 940) {
+      t -= 2;
+      g.font = `${peso} ${t}px sans-serif`;
+    }
+  };
+  ajustar(linea1, 800, 92);
   g.fillText(linea1, 512, 100);
   g.fillStyle = "#e6fffb";
-  g.font = "700 54px sans-serif";
+  ajustar(linea2, 700, 54);
   g.fillText(linea2, 512, 190);
   const t = new CanvasTexture(c);
   t.colorSpace = SRGBColorSpace;

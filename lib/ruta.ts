@@ -51,11 +51,11 @@ const nada = { integridad: 0, salud: 0, kits: 0, botiquines: 0 };
 export const SERVICIOS: Servicio[] = [
   {
     titulo: "ASESORÍA",
-    nombre: "ESTUDIO JURÍDICO PAREDES",
-    letrero: ["ESTUDIO PAREDES", "ABOGADOS · ASESORÍA TRIBUTARIA"],
+    nombre: "ESTUDIO ALDAHIR SILVA VILLAR",
+    letrero: ["ESTUDIO ALDAHIR SILVA VILLAR", "ABOGADOS · ASESORÍA TRIBUTARIA"],
     parqueo: [],
     puerta: "Entrar al estudio",
-    lugar: "el Estudio Jurídico Paredes",
+    lugar: "el Estudio Aldahir Silva Villar",
     distancia: 110,
     variante: "estudio",
     frase: "",
