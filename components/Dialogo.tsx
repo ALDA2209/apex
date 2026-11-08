@@ -91,14 +91,14 @@ function Conversacion({ p, indice }: { p: DatosPuente; indice: number }) {
   }, [sel, p, elegir, seguir]);
 
   return (
-    <div className="absolute inset-x-0 bottom-0 z-20 flex justify-center px-4 pb-6">
+    <div className="absolute inset-x-0 bottom-0 z-20 flex justify-center px-4 pb-6 [@media(max-height:480px)]:px-2 [@media(max-height:480px)]:pb-1">
       <div
-        className="w-full max-w-3xl rounded-2xl border border-white/10 p-5 backdrop-blur-md sm:p-6"
+        className="w-full max-w-3xl overflow-y-auto rounded-2xl border border-white/10 p-5 backdrop-blur-md sm:p-6 max-h-[calc(100dvh-1rem)] [@media(max-height:480px)]:p-3 [@media(max-height:480px)]:sm:p-3"
         style={{ background: "rgba(6,10,20,0.86)" }}
       >
-        <div className="mb-4 flex items-center gap-3">
+        <div className="mb-4 flex items-center gap-3 [@media(max-height:480px)]:mb-1 [@media(max-height:480px)]:gap-2">
           <span
-            className="flex h-10 w-10 items-center justify-center rounded-full text-xs font-bold"
+            className="flex h-10 w-10 items-center justify-center rounded-full text-xs font-bold [@media(max-height:480px)]:h-7 [@media(max-height:480px)]:w-7 [@media(max-height:480px)]:text-[10px]"
             style={{ background: p.uniforme, color: p.banda, fontFamily: JET }}
           >
             {p.insignia}
@@ -128,18 +128,18 @@ function Conversacion({ p, indice }: { p: DatosPuente; indice: number }) {
             </span>
           </div>
         )}
-        <p className="text-lg leading-relaxed text-white sm:text-xl" style={{ fontFamily: BRIC }}>
+        <p className="text-lg leading-relaxed text-white sm:text-xl [@media(max-height:480px)]:text-sm [@media(max-height:480px)]:leading-snug" style={{ fontFamily: BRIC }}>
           {op ? op.oficial : p.pregunta(trato)}
         </p>
 
         {op === null ? (
-          <div className="mt-5 flex flex-col gap-2">
+          <div className="mt-5 flex flex-col gap-2 [@media(max-height:480px)]:mt-2 [@media(max-height:480px)]:gap-1">
             {p.opciones.map((o, i) => (
               <button
                 key={i}
                 type="button"
                 onClick={() => elegir(i)}
-                className="flex items-start gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-left text-white transition hover:border-[#ff7a3d] hover:bg-white/10"
+                className="flex items-start gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3 [@media(max-height:480px)]:px-3 [@media(max-height:480px)]:py-1.5 text-left text-white transition hover:border-[#ff7a3d] hover:bg-white/10"
                 style={{ fontFamily: BRIC }}
               >
                 <span
@@ -148,7 +148,7 @@ function Conversacion({ p, indice }: { p: DatosPuente; indice: number }) {
                 >
                   {i + 1}
                 </span>
-                <span className="text-base leading-snug">{o.texto}</span>
+                <span className="text-base leading-snug [@media(max-height:480px)]:text-xs">{o.texto}</span>
                 {o.correcta && estado.consultas.some((id) => CONSULTAS.find((c) => c.id === id)?.puente === indice) && (
                   <span
                     className="ml-auto shrink-0 self-center rounded-full px-2.5 py-1 text-[9px] uppercase tracking-[0.18em]"
@@ -161,7 +161,7 @@ function Conversacion({ p, indice }: { p: DatosPuente; indice: number }) {
             ))}
           </div>
         ) : (
-          <div className="mt-4">
+          <div className="mt-4 [@media(max-height:480px)]:mt-2">
             <div className="flex flex-wrap gap-2">
               <Cambio
                 etiqueta="Riesgo fiscal"
@@ -175,13 +175,13 @@ function Conversacion({ p, indice }: { p: DatosPuente; indice: number }) {
               />
             </div>
             <div
-              className="mt-4 rounded-xl border px-4 py-3"
+              className="mt-4 rounded-xl border px-4 py-3 [@media(max-height:480px)]:mt-2 [@media(max-height:480px)]:px-3 [@media(max-height:480px)]:py-1.5"
               style={{ borderColor: "rgba(94,234,212,0.3)", background: "rgba(94,234,212,0.06)" }}
             >
               <p className="text-[10px] uppercase tracking-[0.25em]" style={{ color: "#5eead4", fontFamily: JET }}>
                 Lo que debes saber
               </p>
-              <p className="mt-1 text-base leading-snug text-white/90" style={{ fontFamily: BRIC }}>
+              <p className="mt-1 text-base leading-snug text-white/90 [@media(max-height:480px)]:text-xs" style={{ fontFamily: BRIC }}>
                 {op.leccion}
               </p>
             </div>
@@ -191,7 +191,7 @@ function Conversacion({ p, indice }: { p: DatosPuente; indice: number }) {
             <button
               type="button"
               onClick={seguir}
-              className="mt-4 rounded-full px-6 py-3 text-[11px] uppercase tracking-[0.25em] transition hover:brightness-110"
+              className="mt-4 rounded-full px-6 py-3 text-[11px] uppercase tracking-[0.25em] transition hover:brightness-110 [@media(max-height:480px)]:mt-2 [@media(max-height:480px)]:py-1.5"
               style={{ background: "#ff7a3d", color: "#1a0d05", fontFamily: JET }}
             >
               Volver al mototaxi · Espacio

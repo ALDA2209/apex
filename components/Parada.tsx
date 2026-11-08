@@ -150,9 +150,9 @@ export default function Parada() {
   });
 
   return (
-    <div className="absolute inset-x-0 bottom-0 z-20 flex justify-center px-4 pb-6">
+    <div className="absolute inset-x-0 bottom-0 z-20 flex justify-center px-4 pb-6 [@media(max-height:480px)]:px-2 [@media(max-height:480px)]:pb-1">
       <div
-        className="w-full max-w-3xl rounded-2xl border border-white/10 p-5 backdrop-blur-md sm:p-6"
+        className="w-full max-w-3xl overflow-y-auto rounded-2xl border border-white/10 p-5 backdrop-blur-md sm:p-6 max-h-[calc(100dvh-1rem)] [@media(max-height:480px)]:p-3 [@media(max-height:480px)]:sm:p-3"
         style={{ background: "rgba(6,10,20,0.88)" }}
       >
         <p className="text-[10px] uppercase tracking-[0.3em]" style={{ color: "#5eead4", fontFamily: JET }}>

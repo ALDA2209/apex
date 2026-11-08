@@ -45,11 +45,11 @@ export default function Velocimetro() {
 
       {!oculto && (
         <div
-          className="absolute left-1/2 top-[4.3rem] z-10 flex -translate-x-1/2 items-center gap-4 rounded-2xl border bg-black/55 px-5 py-2 backdrop-blur"
+          className="absolute left-1/2 top-[4.3rem] z-10 flex -translate-x-1/2 [@media(max-width:640px)_and_(orientation:portrait)]:top-auto [@media(max-width:640px)_and_(orientation:portrait)]:bottom-[9.5rem] [@media(max-width:640px)_and_(orientation:portrait)]:gap-3 [@media(max-width:640px)_and_(orientation:portrait)]:px-4 [@media(max-width:640px)_and_(orientation:portrait)]:py-1 items-center gap-4 rounded-2xl border bg-black/55 px-5 py-2 backdrop-blur [@media(max-height:480px)]:top-auto [@media(max-height:480px)]:bottom-2 [@media(max-height:480px)]:gap-3 [@media(max-height:480px)]:px-3 [@media(max-height:480px)]:py-1"
           style={{ fontFamily: JET, borderColor: pasado ? "rgba(244,63,94,0.8)" : "rgba(255,255,255,0.15)" }}
         >
           <div className="flex items-baseline gap-2">
-            <span className={`text-4xl font-semibold leading-none ${pasado ? "animate-pulse" : ""}`} style={{ color }}>
+            <span className={`text-4xl font-semibold leading-none [@media(max-height:480px)]:text-2xl ${pasado ? "animate-pulse" : ""}`} style={{ color }}>
               {kmh}
             </span>
             <span className="text-[10px] uppercase tracking-[0.3em] text-white/70">km/h</span>
@@ -57,7 +57,7 @@ export default function Velocimetro() {
           <span className="h-8 w-px bg-white/20" />
           <div className="flex items-center gap-2">
             <span
-              className="flex h-11 w-11 items-center justify-center rounded-full bg-white text-base font-extrabold text-black"
+              className="flex h-11 w-11 items-center justify-center rounded-full bg-white text-base [@media(max-height:480px)]:h-8 [@media(max-height:480px)]:w-8 [@media(max-height:480px)]:text-xs font-extrabold text-black"
               style={{ boxShadow: "inset 0 0 0 5px #dc2626" }}
               aria-label={`Límite ${tramo.limite} kilómetros por hora`}
             >
@@ -73,9 +73,9 @@ export default function Velocimetro() {
       )}
 
       {ver && papeleta && !oculto && (
-        <div className="pointer-events-none absolute inset-x-0 top-[8.4rem] z-20 flex justify-center px-4">
+        <div className="pointer-events-none absolute inset-x-0 top-[8.4rem] z-20 flex justify-center px-4 [@media(max-width:640px)_and_(orientation:portrait)]:top-[15rem] [@media(max-height:480px)]:top-[4.4rem]">
           <div
-            className="max-w-md rounded-2xl border px-5 py-3 backdrop-blur"
+            className="max-w-md rounded-2xl border px-5 py-3 backdrop-blur [@media(max-height:480px)]:px-3 [@media(max-height:480px)]:py-1.5 [@media(max-height:480px)]:text-xs"
             style={{ borderColor: "rgba(244,63,94,0.7)", background: "rgba(40,6,16,0.82)" }}
           >
             <p className="text-[10px] uppercase tracking-[0.3em]" style={{ color: "#f43f5e", fontFamily: JET }}>

@@ -50,10 +50,10 @@ export default function Ruta() {
 
   return (
     <div
-      className="absolute right-5 top-[4.3rem] z-10 w-[11rem] rounded-2xl border border-white/10 bg-black/45 p-2.5 backdrop-blur"
+      className="absolute right-5 top-[4.3rem] z-10 w-[11rem] [@media(max-width:640px)_and_(orientation:portrait)]:right-2 [@media(max-width:640px)_and_(orientation:portrait)]:top-11 [@media(max-width:640px)_and_(orientation:portrait)]:w-28 rounded-2xl border border-white/10 bg-black/45 p-2.5 backdrop-blur [@media(max-height:480px)]:right-2 [@media(max-height:480px)]:top-10 [@media(max-height:480px)]:w-auto [@media(max-height:480px)]:rounded-full [@media(max-height:480px)]:px-3 [@media(max-height:480px)]:py-1"
       style={{ fontFamily: JET }}
     >
-      <div className="mb-2 flex items-center justify-between text-[9px] uppercase tracking-[0.22em]">
+      <div className="mb-2 flex items-center justify-between gap-3 text-[9px] uppercase tracking-[0.22em] [@media(max-height:480px)]:mb-0">
         <span className="text-white/60">Mapa</span>
         <span style={{ color: "#5eead4" }}>
           Llegas ~{mm}:{ss}
@@ -61,7 +61,7 @@ export default function Ruta() {
       </div>
 
       <div
-        className="relative h-44 overflow-hidden rounded-xl border border-white/10"
+        className="relative h-44 overflow-hidden rounded-xl border border-white/10 [@media(max-width:640px)_and_(orientation:portrait)]:h-28 [@media(max-height:480px)]:hidden"
         style={{
           background:
             "radial-gradient(120% 90% at 50% 100%, rgba(45,212,191,0.16), rgba(6,10,20,0.95) 70%), repeating-linear-gradient(0deg, rgba(255,255,255,0.04) 0 1px, transparent 1px 22px)",
@@ -121,7 +121,7 @@ export default function Ruta() {
         </span>
       </div>
 
-      <div className="mt-2 flex items-center gap-2">
+      <div className="mt-2 flex items-center gap-2 [@media(max-height:480px)]:hidden">
         <span className="h-1 flex-1 overflow-hidden rounded-full bg-white/15">
           <span
             className="block h-full rounded-full"
@@ -131,7 +131,7 @@ export default function Ruta() {
         <span className="text-[9px] text-white/60">{Math.round(pct)}%</span>
       </div>
       {proximo && (
-        <p className="mt-1.5 truncate text-[9px] uppercase tracking-[0.18em] text-white/60">
+        <p className="mt-1.5 truncate text-[9px] uppercase tracking-[0.18em] text-white/60 [@media(max-height:480px)]:hidden">
           Próximo · <span style={{ color: COLOR[proximo.tipo] }}>{proximo.nombre}</span>
         </p>
       )}

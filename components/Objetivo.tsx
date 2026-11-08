@@ -62,13 +62,13 @@ export default function Objetivo() {
   return (
     <>
       <div
-        className="absolute left-1/2 top-[4.6rem] z-10 -translate-x-1/2 rounded-full border border-white/10 bg-black/45 px-5 py-2 backdrop-blur"
+        className="absolute left-1/2 top-[4.6rem] z-10 -translate-x-1/2 rounded-full [@media(max-width:640px)_and_(orientation:portrait)]:top-auto [@media(max-width:640px)_and_(orientation:portrait)]:bottom-[9.5rem] [@media(max-width:640px)_and_(orientation:portrait)]:w-[calc(100vw-1rem)] [@media(max-width:640px)_and_(orientation:portrait)]:rounded-2xl [@media(max-width:640px)_and_(orientation:portrait)]:px-3 [@media(max-width:640px)_and_(orientation:portrait)]:py-1.5 [@media(max-width:640px)_and_(orientation:portrait)]:text-center border border-white/10 bg-black/45 px-5 py-2 backdrop-blur [@media(max-height:480px)]:top-auto [@media(max-height:480px)]:bottom-2 [@media(max-height:480px)]:w-[44vw] [@media(max-height:480px)]:px-3 [@media(max-height:480px)]:py-1 [@media(max-height:480px)]:text-center"
         style={{ fontFamily: JET }}
       >
         <span className="text-[10px] uppercase tracking-[0.3em]" style={{ color: "#5eead4" }}>
           Objetivo
         </span>
-        <span className="ml-3 text-xs text-white">{texto}</span>
+        <span className="ml-3 text-xs text-white [@media(max-height:480px)]:ml-2 [@media(max-height:480px)]:text-[11px] [@media(max-height:480px)]:leading-tight">{texto}</span>
       </div>
 
       {accion && !tactil && (

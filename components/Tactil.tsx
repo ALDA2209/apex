@@ -71,7 +71,9 @@ function Boton({
       onLostPointerCapture={soltar}
       onContextMenu={(e) => e.preventDefault()}
       className={`flex select-none items-center justify-center rounded-2xl border border-white/25 text-white backdrop-blur ${
-        grande ? "h-20 min-w-20 px-4 text-lg" : "h-14 min-w-14 px-3 text-sm"
+        grande
+          ? "h-20 min-w-20 px-4 text-lg [@media(max-height:480px)]:h-14 [@media(max-height:480px)]:min-w-14 [@media(max-height:480px)]:text-base"
+          : "h-14 min-w-14 px-3 text-sm [@media(max-height:480px)]:h-10 [@media(max-height:480px)]:min-w-10 [@media(max-height:480px)]:text-xs"
       }`}
       style={{
         background: on ? "rgba(255,122,61,0.75)" : color,
@@ -83,6 +85,46 @@ function Boton({
       }}
     >
       {children}
+    </button>
+  );
+}
+
+/* Botón de pantalla completa (solo celular/tablet): da mucho más espacio al juego. */
+export function PantallaCompleta({ derecha = "right-5" }: { derecha?: string }) {
+  const tactil = useTactil();
+  const [ok, setOk] = useState(false);
+  const [on, setOn] = useState(false);
+  useEffect(() => {
+    const f = () => setOn(!!document.fullscreenElement);
+    setOk(!!document.fullscreenEnabled);
+    document.addEventListener("fullscreenchange", f);
+    return () => document.removeEventListener("fullscreenchange", f);
+  }, []);
+  if (!tactil || !ok) return null;
+  const alternar = async () => {
+    try {
+      if (document.fullscreenElement) {
+        await document.exitFullscreen();
+      } else {
+        await document.documentElement.requestFullscreen();
+        try {
+          await (screen.orientation as unknown as { lock?: (o: string) => Promise<void> }).lock?.("landscape");
+        } catch {
+          /* no todos los celulares dejan fijar la orientación */
+        }
+      }
+    } catch {
+      /* si el navegador no lo permite, no pasa nada */
+    }
+  };
+  return (
+    <button
+      type="button"
+      onClick={alternar}
+      aria-label={on ? "Salir de pantalla completa" : "Pantalla completa"}
+      className={`fixed top-5 z-40 flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-black/50 text-base text-white/90 backdrop-blur [@media(max-width:640px)_and_(orientation:portrait)]:top-2 [@media(max-width:640px)_and_(orientation:portrait)]:h-7 [@media(max-width:640px)_and_(orientation:portrait)]:w-7 [@media(max-height:480px)]:top-2 [@media(max-height:480px)]:h-7 [@media(max-height:480px)]:w-7 ${derecha}`}
+    >
+      {on ? "⤡" : "⛶"}
     </button>
   );
 }
@@ -125,7 +167,7 @@ export default function Tactil() {
     <>
       {vertical && (
         <div
-          className="pointer-events-none absolute inset-x-0 bottom-44 z-20 flex justify-center px-4"
+          className="pointer-events-none absolute inset-x-0 bottom-44 z-20 flex justify-center px-4 [@media(max-width:640px)_and_(orientation:portrait)]:bottom-[15.5rem]"
           style={{ fontFamily: JET }}
         >
           <div className="rounded-full border border-white/20 bg-black/70 px-4 py-2 text-[11px] uppercase tracking-[0.2em] text-white">
@@ -135,7 +177,7 @@ export default function Tactil() {
       )}
 
       {conduciendo && (
-        <div className="pointer-events-none absolute inset-x-0 bottom-4 z-20 flex items-end justify-between px-4">
+        <div className="pointer-events-none absolute inset-x-0 bottom-4 z-20 flex items-end justify-between px-4 [@media(max-height:480px)]:bottom-2 [@media(max-height:480px)]:px-2">
           <div className="pointer-events-auto flex gap-3">
             <Boton code="KeyA" mantener={false} grande etiqueta="Carril izquierdo">
               ◀
@@ -161,7 +203,7 @@ export default function Tactil() {
       )}
 
       {caminando && (
-        <div className="pointer-events-none absolute inset-x-0 bottom-4 z-20 flex items-end justify-between px-4">
+        <div className="pointer-events-none absolute inset-x-0 bottom-4 z-20 flex items-end justify-between px-4 [@media(max-height:480px)]:bottom-2 [@media(max-height:480px)]:px-2">
           <div className="pointer-events-auto grid grid-cols-3 grid-rows-2 gap-2">
             <div />
             <Boton code="KeyW" etiqueta="Adelante">

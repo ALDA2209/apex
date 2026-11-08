@@ -11,7 +11,7 @@ import Controles from "@/components/Controles";
 import Tienda from "@/components/Tienda";
 import Objetivo from "@/components/Objetivo";
 import Orbita from "@/components/Orbita";
-import Tactil from "@/components/Tactil";
+import Tactil, { PantallaCompleta } from "@/components/Tactil";
 import Ajustes, { Sonido } from "@/components/Sonido";
 import { prepararNivel, type Nivel } from "@/lib/niveles";
 import { estado, prepararPartida, salirDeTienda, useDentro, useObjetivo, type Genero } from "@/lib/estado";
@@ -112,7 +112,7 @@ export default function Juego() {
   return (
     <main className="relative h-dvh w-full overflow-hidden bg-black">
       <Sonido />
-      <Ajustes derecha={fase === "carrera" ? "right-24" : "right-5"} />
+      <Ajustes derecha={fase === "carrera" ? "right-24 [@media(max-height:480px)]:right-20 [@media(max-width:640px)_and_(orientation:portrait)]:right-[5.2rem]" : "right-5"} />
       <div className="absolute inset-0">
         <Escena perfil={perfil} />
       </div>
@@ -127,6 +127,10 @@ export default function Juego() {
       )}
 
       {(fase === "tienda" || fase === "carrera") && <Orbita />}
+
+      {(fase === "tienda" || fase === "carrera") && (
+        <PantallaCompleta derecha={fase === "carrera" ? "right-[8.5rem] [@media(max-height:480px)]:right-[7.2rem] [@media(max-width:640px)_and_(orientation:portrait)]:right-[7.6rem]" : "right-16"} />
+      )}
 
       {fase === "tienda" && (
         <>
@@ -148,14 +152,14 @@ export default function Juego() {
           />
 
           <div
-            className="absolute left-5 top-5 z-10 flex items-center gap-3 rounded-full border border-white/10 bg-black/40 px-4 py-2 backdrop-blur"
+            className="absolute left-5 top-5 z-10 flex items-center gap-3 rounded-full [@media(max-width:640px)_and_(orientation:portrait)]:left-2 [@media(max-width:640px)_and_(orientation:portrait)]:top-2 [@media(max-width:640px)_and_(orientation:portrait)]:gap-2 [@media(max-width:640px)_and_(orientation:portrait)]:px-3 [@media(max-width:640px)_and_(orientation:portrait)]:py-1 [@media(max-width:640px)_and_(orientation:portrait)]:max-w-[7.5rem] [@media(max-width:640px)_and_(orientation:portrait)]:overflow-hidden border border-white/10 bg-black/40 px-4 py-2 backdrop-blur [@media(max-height:480px)]:left-2 [@media(max-height:480px)]:top-2 [@media(max-height:480px)]:gap-2 [@media(max-height:480px)]:px-3 [@media(max-height:480px)]:py-1"
             style={{ fontFamily: JET }}
           >
             <span
               className="h-2.5 w-2.5 rounded-full"
               style={{ background: perfil.color, boxShadow: `0 0 10px ${perfil.color}` }}
             />
-            <span className="text-[11px] uppercase tracking-[0.25em] text-white">
+            <span className="truncate text-[11px] uppercase tracking-[0.25em] text-white">
               {perfil.nombre || "Piloto"}
             </span>
           </div>
@@ -163,7 +167,7 @@ export default function Juego() {
           <button
             type="button"
             onClick={() => setFase("menu")}
-            className="absolute right-5 top-5 z-10 rounded-full border border-white/10 bg-black/40 px-4 py-2 text-[11px] uppercase tracking-[0.25em] text-white/90 backdrop-blur hover:text-white"
+            className="absolute right-5 top-5 z-10 rounded-full border border-white/10 bg-black/40 px-4 py-2 [@media(max-width:640px)_and_(orientation:portrait)]:right-2 [@media(max-width:640px)_and_(orientation:portrait)]:top-2 [@media(max-width:640px)_and_(orientation:portrait)]:px-3 [@media(max-width:640px)_and_(orientation:portrait)]:py-1 [@media(max-height:480px)]:right-2 [@media(max-height:480px)]:top-2 [@media(max-height:480px)]:px-3 [@media(max-height:480px)]:py-1 text-[11px] uppercase tracking-[0.25em] text-white/90 backdrop-blur hover:text-white"
             style={{ fontFamily: JET }}
           >
             Menú

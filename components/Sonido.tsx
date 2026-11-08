@@ -70,7 +70,7 @@ export default function Ajustes({ derecha = "right-5" }: { derecha?: string }) {
         type="button"
         onClick={() => setAbierto((a) => !a)}
         aria-label="Ajustes de sonido"
-        className={`fixed top-5 z-40 flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-black/50 text-base text-white/90 backdrop-blur hover:text-white ${derecha}`}
+        className={`fixed top-5 z-40 [@media(max-width:640px)_and_(orientation:portrait)]:top-2 [@media(max-width:640px)_and_(orientation:portrait)]:h-7 [@media(max-width:640px)_and_(orientation:portrait)]:w-7 [@media(max-height:480px)]:top-2 [@media(max-height:480px)]:h-7 [@media(max-height:480px)]:w-7 flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-black/50 text-base text-white/90 backdrop-blur hover:text-white ${derecha}`}
       >
         ⚙
       </button>
