@@ -6,7 +6,9 @@
 import http from "node:http";
 
 const PUERTO = process.env.PORT || 3001;
-const CLAVE = process.env.GEMINI_API_KEY || "";
+/* Hasta 6 claves, de proyectos distintos de Google (cada proyecto tiene su propio cupo gratis). */
+const CLAVES = ["", "_2", "_3", "_4", "_5", "_6"].map((n) => (process.env["GEMINI_API_KEY" + n] || "").trim()).filter(Boolean);
+const CLAVE = CLAVES[0] || "";
 const MODELOS = (process.env.GEMINI_MODEL || "gemini-3.8-flash").split(",").map((m) => m.trim());
 const MODELO = MODELOS[0];
 
@@ -81,7 +83,37 @@ REGLAS ESTRICTAS:
 - Máximo 90 palabras. Sin listas, sin títulos, sin emojis. Texto corrido.
 - Cierra con una recomendación concreta y práctica.`;
 
-async function llamar(modelo, sistema, usuario) {
+/* Si una clave da 429 (límite), esa pareja clave+modelo descansa 60 s y se usa la siguiente clave. */
+const frio = new Map();
+async function conClaves(modelo, hacer) {
+  let ultimo;
+  for (let i = 0; i < CLAVES.length; i++) {
+    const id = `${i}|${modelo}`;
+    if ((frio.get(id) || 0) > Date.now()) {
+      ultimo = ultimo || new Error(`Gemini ${modelo} 429`);
+      continue;
+    }
+    try {
+      return await hacer(CLAVES[i]);
+    } catch (e) {
+      ultimo = e;
+      if (!/ 429$/.test(String(e))) throw e;
+      const largo = e.diario ? 30 * 60 * 1000 : 60000;
+      frio.set(id, Date.now() + largo);
+      console.log(`clave ${i + 1} de ${CLAVES.length}: ${modelo} en pausa ${e.diario ? "30 min (cupo del día)" : "60 s"}`);
+    }
+  }
+  throw ultimo;
+}
+async function error429(r, modelo) {
+  const t = await r.text().catch(() => "");
+  console.log("429 detalle:", t.replace(/\s+/g, " ").slice(0, 260));
+  const e = new Error(`Gemini ${modelo} 429`);
+  e.diario = /PerDay/i.test(t);
+  return e;
+}
+
+async function llamar(modelo, sistema, usuario, clave) {
   const ctl = new AbortController();
   const t = setTimeout(() => ctl.abort(), 14000);
   try {
@@ -89,7 +121,7 @@ async function llamar(modelo, sistema, usuario) {
     if (/^gemini-([3-9]|\d{2})/.test(modelo)) generationConfig.thinkingConfig = { thinkingLevel: "low" };
     const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", "x-goog-api-key": CLAVE },
+      headers: { "Content-Type": "application/json", "x-goog-api-key": clave },
       body: JSON.stringify({
         systemInstruction: { parts: [{ text: sistema }] },
         contents: [{ role: "user", parts: [{ text: usuario }] }],
@@ -97,7 +129,10 @@ async function llamar(modelo, sistema, usuario) {
       }),
       signal: ctl.signal,
     });
-    if (!r.ok) throw new Error(`Gemini ${modelo} ${r.status}`);
+    if (!r.ok) {
+      if (r.status === 429) throw await error429(r, modelo);
+      throw new Error(`Gemini ${modelo} ${r.status}`);
+    }
     const j = await r.json();
     const texto = (j.candidates?.[0]?.content?.parts || [])
       .filter((p) => !p.thought)
@@ -117,7 +152,7 @@ async function gemini(sistema, usuario) {
   for (const m of await listaModelos()) {
     for (let v = 0; v < 2; v++) {
       try {
-        return await llamar(m, sistema, usuario);
+        return await conClaves(m, (k) => llamar(m, sistema, usuario, k));
       } catch (e) {
         ultimo = e;
         console.log("falló", String(e).slice(0, 120));
@@ -338,22 +373,44 @@ function validarPreguntas(j, plan, nOp) {
   });
 }
 
+/* Reserva: guarda los juegos de preguntas que la IA ya creó. Solo se usa si Gemini no puede responder (límite del día). */
+const reserva = { 3: [], 4: [] };
+function guardarReserva(nOp, lista) {
+  const r = reserva[nOp];
+  r.push(lista);
+  if (r.length > 30) r.shift();
+}
+function sacarReserva(nOp, evitar) {
+  const r = reserva[nOp] || [];
+  if (!r.length) return null;
+  const puntaje = (l) => l.filter((q) => evitar.some((t) => t && q.pregunta.startsWith(String(t).slice(0, 40)))).length + Math.random();
+  return [...r].sort((a, b) => puntaje(a) - puntaje(b))[0];
+}
+
 async function crearPreguntas(b) {
   const { nOp, plan, usuario } = pedidoPreguntas(b);
   let ultimo;
-  for (let intento = 0; intento < 1; intento++) {
+  for (let intento = 0; intento < 2; intento++) {
     try {
       const crudo = await geminiJson(REGLAS_PREGUNTAS, usuario);
-      return validarPreguntas(JSON.parse(crudo), plan, nOp);
+      const lista = validarPreguntas(JSON.parse(crudo), plan, nOp);
+      guardarReserva(nOp, lista);
+      return lista;
     } catch (e) {
       ultimo = e;
       console.log("preguntas, intento", intento + 1, String(e).slice(0, 120));
+      if (/Gemini|Abort/.test(String(e))) break; // límite o tiempo: otro intento no ayuda
     }
+  }
+  const guardada = /Gemini|Abort/.test(String(ultimo)) ? sacarReserva(nOp, b.evitar && Array.isArray(b.evitar) ? b.evitar : []) : null;
+  if (guardada) {
+    console.log("usando reserva de preguntas de la IA (Gemini sin cupo):", reserva[nOp].length, "guardadas");
+    return guardada;
   }
   throw ultimo;
 }
 
-async function llamarJson(modelo, sistema, usuario) {
+async function llamarJson(modelo, sistema, usuario, clave) {
   const ctl = new AbortController();
   const t = setTimeout(() => ctl.abort(), 22000);
   try {
@@ -366,7 +423,7 @@ async function llamarJson(modelo, sistema, usuario) {
     if (/^gemini-([3-9]|\d{2})/.test(modelo)) generationConfig.thinkingConfig = { thinkingLevel: "low" };
     const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", "x-goog-api-key": CLAVE },
+      headers: { "Content-Type": "application/json", "x-goog-api-key": clave },
       body: JSON.stringify({
         systemInstruction: { parts: [{ text: sistema }] },
         contents: [{ role: "user", parts: [{ text: usuario }] }],
@@ -374,7 +431,10 @@ async function llamarJson(modelo, sistema, usuario) {
       }),
       signal: ctl.signal,
     });
-    if (!r.ok) throw new Error(`Gemini ${modelo} ${r.status}`);
+    if (!r.ok) {
+      if (r.status === 429) throw await error429(r, modelo);
+      throw new Error(`Gemini ${modelo} ${r.status}`);
+    }
     const j = await r.json();
     const texto = (j.candidates?.[0]?.content?.parts || [])
       .filter((p) => !p.thought)
@@ -393,7 +453,7 @@ async function geminiJson(sistema, usuario) {
   for (const m of await listaModelos()) {
     for (let v = 0; v < 2; v++) {
       try {
-        return await llamarJson(m, sistema, usuario);
+        return await conClaves(m, (k) => llamarJson(m, sistema, usuario, k));
       } catch (e) {
         ultimo = e;
         console.log("falló", String(e).slice(0, 120));
@@ -423,7 +483,7 @@ http
     const origen = req.headers.origin || "";
     if (req.method === "OPTIONS") return responder(res, 204, {}, origen);
     if (req.url === "/modelos") return responder(res, 200, { modelos: await listaModelos() }, origen);
-    if (req.url === "/salud") return responder(res, 200, { ok: true, clave: !!CLAVE, modelo: MODELO, preguntas: true }, origen);
+    if (req.url === "/salud") return responder(res, 200, { ok: true, clave: !!CLAVE, claves: CLAVES.length, modelo: MODELO, preguntas: true, reserva: reserva[3].length + reserva[4].length }, origen);
     if (req.method !== "POST" || !RUTAS.includes(req.url || "")) {
       return responder(res, 404, { error: "no existe" }, origen);
     }
