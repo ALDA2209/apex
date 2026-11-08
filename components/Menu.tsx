@@ -76,7 +76,8 @@ export default function Menu({ perfil, alCambiar, alJugar }: Props) {
   const rango = rangoDe(prog.xp);
   const pctXp = rango.siguiente ? Math.min(100, ((prog.xp - rango.desde) / (rango.siguiente - rango.desde)) * 100) : 100;
   const [demo, setDemo] = useState(false);
-  const [vista, setVista] = useState<"inicio" | "tienda" | "inventario">("inicio");
+  const [vista, setVista] = useState<"inicio" | "tienda">("inicio")
+  const [verInventario, setVerInventario] = useState(false);
   const [prueba, setPrueba] = useState<Perfil | null>(null);
   const valido = perfil.nombre.trim().length >= 2;
   const zoom = useRef<ApiZoom | null>(null);
@@ -103,8 +104,6 @@ export default function Menu({ perfil, alCambiar, alJugar }: Props) {
       >
         {vista === "tienda" ? (
           <TiendaMenu perfil={perfil} alCambiar={alCambiar} alProbar={setPrueba} alVolver={() => setVista("inicio")} />
-        ) : vista === "inventario" ? (
-          <InventarioMenu perfil={perfil} alCambiar={alCambiar} alVolver={() => setVista("inicio")} alIrTienda={() => setVista("tienda")} />
         ) : (
           <>
         <header className="anim-subir">
@@ -222,7 +221,7 @@ export default function Menu({ perfil, alCambiar, alJugar }: Props) {
           </button>
           <button
             type="button"
-            onClick={() => setVista("inventario")}
+            onClick={() => setVerInventario(true)}
             className="flex items-center justify-between rounded-2xl border border-white/15 px-4 py-3.5 text-left font-semibold text-white transition hover:border-white/40 hover:bg-white/[0.04] active:scale-[0.99]"
           >
             <span>Inventario</span>
@@ -235,6 +234,18 @@ export default function Menu({ perfil, alCambiar, alJugar }: Props) {
           </>
         )}
       </form>
+
+      {verInventario && (
+        <InventarioMenu
+          perfil={perfil}
+          alCambiar={alCambiar}
+          alCerrar={() => setVerInventario(false)}
+          alIrTienda={() => {
+            setVerInventario(false);
+            setVista("tienda");
+          }}
+        />
+      )}
 
       <section className="sticky top-0 z-20 order-first h-[40vh] min-h-[260px] bg-[#0b0820] md:order-none md:h-screen md:min-h-0 md:self-start md:bg-transparent">
         <Canvas camera={{ position: [5.4, 4.3, 8.9], fov: 38 }} dpr={[1, 2]}>

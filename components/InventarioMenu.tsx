@@ -1,24 +1,42 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useProgreso } from "@/lib/semana";
-import { CATALOGO, MEJORAS, esTuyo, type Item } from "@/lib/tienda";
+import { CATALOGO, MEJORAS, esTuyo, type Grupo, type Item } from "@/lib/tienda";
 import type { Perfil } from "@/lib/perfil";
 
 const ETIQUETA = "font-mono text-[11px] uppercase tracking-[0.24em] text-tenue";
+const PESTANAS: { id: Grupo; nombre: string }[] = [
+  { id: "moto", nombre: "Mototaxi" },
+  { id: "cabeza", nombre: "Personaje" },
+  { id: "mejora", nombre: "Mejoras" },
+];
 
 type Props = {
   perfil: Perfil;
   alCambiar: (p: Perfil) => void;
-  alVolver: () => void;
+  alCerrar: () => void;
   alIrTienda: () => void;
 };
 
-/* Todo lo que tienes: lo básico (gratis) y lo que compraste. Tocar una cosa te la pone. */
-export default function InventarioMenu({ perfil, alCambiar, alVolver, alIrTienda }: Props) {
+/* Ventana de inventario: todo lo que tienes (lo básico y lo que compraste). Tocar una cosa te la pone. */
+export default function InventarioMenu({ perfil, alCambiar, alCerrar, alIrTienda }: Props) {
   const prog = useProgreso();
+  const [pestana, setPestana] = useState<Grupo>("moto");
+
+  useEffect(() => {
+    const tecla = (e: KeyboardEvent) => {
+      if (e.key === "Escape") alCerrar();
+    };
+    window.addEventListener("keydown", tecla);
+    return () => window.removeEventListener("keydown", tecla);
+  }, [alCerrar]);
+
   const compradas = prog.compras.filter((id) => CATALOGO.some((i) => i.id === id));
   const vacio = compradas.length === 0;
-  const tuyos = (tipo: (i: Item) => boolean) => CATALOGO.filter((i) => tipo(i) && esTuyo(i, prog.compras));
+  const cuenta = (g: Grupo) => compradas.filter((id) => CATALOGO.find((i) => i.id === id)?.grupo === g).length;
+  const tuyos = (g: Grupo) => CATALOGO.filter((i) => i.grupo === g && esTuyo(i, prog.compras));
+  const mejoras = MEJORAS.filter((m) => prog.compras.includes(m.id));
 
   const tarjeta = (i: Item) => {
     const puesto = !!i.puesto?.(perfil);
@@ -30,7 +48,7 @@ export default function InventarioMenu({ perfil, alCambiar, alVolver, alIrTienda
         disabled={puesto}
         onClick={() => i.poner && alCambiar(i.poner(perfil))}
         className={`flex flex-col items-center gap-1 overflow-hidden rounded-xl border pb-2 text-sm transition disabled:cursor-default ${
-          puesto ? "border-menta/50 text-white" : "border-white/10 text-tenue hover:border-white/30 hover:text-white"
+          puesto ? "border-menta/60 bg-menta/[0.06] text-white" : "border-white/10 text-tenue hover:border-white/35 hover:text-white"
         }`}
       >
         <span className="relative block aspect-square w-full bg-gradient-to-b from-white/[0.06] to-transparent">
@@ -47,68 +65,103 @@ export default function InventarioMenu({ perfil, alCambiar, alVolver, alIrTienda
     );
   };
 
-  const grupo = (titulo: string, items: Item[]) =>
-    items.length === 0 ? null : (
-      <div key={titulo}>
-        <p className={ETIQUETA}>{titulo}</p>
-        <div className="mt-2 grid grid-cols-3 gap-2">{items.map(tarjeta)}</div>
-      </div>
-    );
-
-  const mejoras = MEJORAS.filter((m) => prog.compras.includes(m.id));
+  const grupo = (titulo: string, items: Item[]) => (
+    <div key={titulo}>
+      <p className={ETIQUETA}>{titulo}</p>
+      <div className="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-4">{items.map(tarjeta)}</div>
+    </div>
+  );
 
   return (
-    <div className="anim-subir flex flex-col gap-5">
-      <div className="flex items-center justify-between gap-3">
-        <button type="button" onClick={alVolver} className="font-mono text-[11px] uppercase tracking-[0.2em] text-tenue transition hover:text-white">
-          ← Volver
-        </button>
-        <button type="button" onClick={alIrTienda} className="font-mono text-[11px] uppercase tracking-[0.2em] transition hover:text-white" style={{ color: "#fbbf24" }}>
-          Ir a la tienda →
-        </button>
-      </div>
-      <div>
-        <h2 className="font-display text-4xl font-bold leading-none tracking-tight">Inventario</h2>
-        <p className="mt-2 text-[13px] leading-relaxed text-tenue">
-          {vacio ? "Aquí verás todo lo que compres. Toca algo para ponértelo." : `Tienes ${compradas.length} ${compradas.length === 1 ? "cosa comprada" : "cosas compradas"}. Toca algo para ponértelo.`}
-        </p>
-      </div>
-
-      {vacio && (
-        <div className="rounded-xl border border-dashed border-white/15 p-4 text-center">
-          <p className="text-sm font-semibold text-white">Todavía no compraste nada</p>
-          <p className="mt-1 text-[12px] leading-relaxed text-tenue">
-            Termina un día de ruta para ganar dinero y gástalo en la tienda: colores para tu mototaxi, cascos, lentes y mejoras que ayudan a jugar.
-          </p>
+    <div
+      className="fixed inset-0 z-[60] flex items-end justify-center bg-black/55 sm:items-center sm:p-6 md:justify-start md:bg-black/35 md:pl-12"
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) alCerrar();
+      }}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Inventario"
+        className="anim-subir flex max-h-[88vh] w-full max-w-xl flex-col overflow-hidden rounded-t-3xl border border-white/15 bg-[#0c1229]/95 shadow-2xl backdrop-blur-xl sm:rounded-3xl"
+      >
+        <div className="flex items-start justify-between gap-3 border-b border-white/10 px-5 py-4">
+          <div>
+            <h2 className="font-display text-2xl font-bold leading-none tracking-tight">Inventario</h2>
+            <p className="mt-1.5 text-[12px] text-tenue">
+              {vacio ? "Aquí verás todo lo que compres." : `${compradas.length} ${compradas.length === 1 ? "cosa comprada" : "cosas compradas"} · toca una para ponértela`}
+            </p>
+          </div>
           <button
             type="button"
-            onClick={alIrTienda}
-            className="mt-3 rounded-xl bg-[#fbbf24] px-5 py-2.5 text-sm font-semibold text-[#1a1205] transition hover:brightness-110 active:scale-[0.98]"
+            onClick={alCerrar}
+            aria-label="Cerrar inventario"
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-white/15 text-tenue transition hover:border-white/40 hover:text-white"
           >
-            Ver la tienda
+            ✕
           </button>
         </div>
-      )}
 
-      {grupo("Mototaxi · color", tuyos((i) => i.tipo === "color"))}
-      {grupo("Personaje · casco", tuyos((i) => i.tipo === "casco"))}
-      {grupo("Personaje · lentes", tuyos((i) => i.tipo === "lentes"))}
-      {grupo("Personaje · barba", tuyos((i) => i.tipo === "barba"))}
+        <div className="grid grid-cols-3 gap-1.5 px-5 pt-4" role="tablist">
+          {PESTANAS.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              role="tab"
+              aria-selected={pestana === t.id}
+              onClick={() => setPestana(t.id)}
+              className={`rounded-xl border px-2 py-2.5 font-mono text-[11px] uppercase tracking-[0.12em] transition ${
+                pestana === t.id ? "border-acento bg-acento/15 text-white" : "border-white/10 text-tenue hover:border-white/30 hover:text-white"
+              }`}
+            >
+              {t.nombre} <span className="text-tenue/70">· {cuenta(t.id)}</span>
+            </button>
+          ))}
+        </div>
 
-      <div>
-        <p className={ETIQUETA}>Mejoras para jugar</p>
-        {mejoras.length === 0 ? (
-          <p className="mt-2 rounded-xl border border-white/10 px-4 py-3 text-[12px] text-tenue">Ninguna todavía.</p>
-        ) : (
-          <div className="mt-2 flex flex-col gap-2">
-            {mejoras.map((m) => (
-              <div key={m.id} className="rounded-xl border border-menta/40 px-4 py-3">
-                <p className="text-sm font-semibold text-white">{m.nombre} ✓</p>
-                <p className="mt-0.5 text-[12px] leading-relaxed text-tenue">{m.detalle}</p>
+        <div className="flex flex-col gap-5 overflow-y-auto px-5 py-4">
+          {vacio && (
+            <div className="rounded-xl border border-dashed border-white/15 p-4 text-center">
+              <p className="text-sm font-semibold text-white">Todavía no compraste nada</p>
+              <p className="mt-1 text-[12px] leading-relaxed text-tenue">
+                Termina un día de ruta para ganar dinero y gástalo en la tienda: colores para tu mototaxi, cascos, lentes y mejoras que ayudan a jugar.
+              </p>
+            </div>
+          )}
+
+          {pestana === "moto" && grupo("Color del mototaxi", tuyos("moto"))}
+
+          {pestana === "cabeza" && (
+            <>
+              {grupo("Casco", tuyos("cabeza").filter((i) => i.tipo === "casco"))}
+              {grupo("Lentes", tuyos("cabeza").filter((i) => i.tipo === "lentes"))}
+              {grupo("Barba", tuyos("cabeza").filter((i) => i.tipo === "barba"))}
+            </>
+          )}
+
+          {pestana === "mejora" &&
+            (mejoras.length === 0 ? (
+              <p className="rounded-xl border border-white/10 px-4 py-3 text-[12px] text-tenue">Ninguna mejora todavía. Las mejoras ayudan a jugar y valen todos los días.</p>
+            ) : (
+              <div className="flex flex-col gap-2">
+                {mejoras.map((m) => (
+                  <div key={m.id} className="rounded-xl border border-menta/40 px-4 py-3">
+                    <p className="text-sm font-semibold text-white">{m.nombre} ✓</p>
+                    <p className="mt-0.5 text-[12px] leading-relaxed text-tenue">{m.detalle}</p>
+                  </div>
+                ))}
               </div>
             ))}
-          </div>
-        )}
+        </div>
+
+        <div className="flex items-center justify-between gap-3 border-t border-white/10 px-5 py-3">
+          <button type="button" onClick={alIrTienda} className="font-mono text-[11px] uppercase tracking-[0.18em] transition hover:text-white" style={{ color: "#fbbf24" }}>
+            Ir a la tienda →
+          </button>
+          <button type="button" onClick={alCerrar} className="rounded-xl bg-acento px-5 py-2 text-sm font-semibold text-[#1a0d05] transition hover:brightness-110 active:scale-[0.98]">
+            Listo
+          </button>
+        </div>
       </div>
     </div>
   );
