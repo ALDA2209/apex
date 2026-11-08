@@ -7,8 +7,39 @@ import http from "node:http";
 
 const PUERTO = process.env.PORT || 3001;
 const CLAVE = process.env.GEMINI_API_KEY || "";
-const MODELOS = (process.env.GEMINI_MODEL || "gemini-3.8-flash,gemini-2.5-flash,gemini-2.5-flash-lite,gemini-2.0-flash").split(",").map((m) => m.trim());
+const MODELOS = (process.env.GEMINI_MODEL || "gemini-3.8-flash").split(",").map((m) => m.trim());
 const MODELO = MODELOS[0];
+
+/* Modelos de respaldo: se le pregunta a Google cuáles existen hoy (los nombres cambian y los viejos se retiran). */
+let cacheModelos = { t: 0, lista: MODELOS };
+async function listaModelos() {
+  if (!CLAVE) return MODELOS;
+  if (Date.now() - cacheModelos.t < 30 * 60 * 1000) return cacheModelos.lista;
+  let lista = MODELOS;
+  let ok = false;
+  try {
+    const r = await fetch("https://generativelanguage.googleapis.com/v1beta/models?pageSize=200", {
+      headers: { "x-goog-api-key": CLAVE },
+      signal: AbortSignal.timeout(8000),
+    });
+    if (r.ok) {
+      const j = await r.json();
+      const ver = (n) => parseFloat(n.match(/gemini-(\d+(?:\.\d+)?)/)?.[1] || "0");
+      const otros = (j.models || [])
+        .filter((m) => (m.supportedGenerationMethods || []).includes("generateContent"))
+        .map((m) => String(m.name || "").replace(/^models\//, ""))
+        .filter((n) => /^gemini-\d+(\.\d+)?-flash(-lite)?$/.test(n) && !MODELOS.includes(n))
+        .sort((a, b) => ver(b) - ver(a) || a.length - b.length)
+        .slice(0, 3);
+      lista = [...MODELOS, ...otros];
+      ok = true;
+    }
+  } catch {}
+  // si no se pudo preguntar, se vuelve a intentar en 5 minutos
+  cacheModelos = { t: ok ? Date.now() : Date.now() - 25 * 60 * 1000, lista };
+  console.log("modelos:", lista.join(", "));
+  return lista;
+}
 const ORIGENES = (process.env.ALLOWED_ORIGIN || "*").split(",").map((s) => s.trim());
 const LIMITE_IP = 20; // consultas por IP cada 10 minutos
 const LIMITE_DIA = 900; // consultas por día en total
@@ -55,7 +86,7 @@ async function llamar(modelo, sistema, usuario) {
   const t = setTimeout(() => ctl.abort(), 14000);
   try {
     const generationConfig = { temperature: 0.5, maxOutputTokens: 2000 };
-    if (modelo.startsWith("gemini-3")) generationConfig.thinkingConfig = { thinkingLevel: "low" };
+    if (/^gemini-([3-9]|\d{2})/.test(modelo)) generationConfig.thinkingConfig = { thinkingLevel: "low" };
     const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent`, {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-goog-api-key": CLAVE },
@@ -83,12 +114,17 @@ async function llamar(modelo, sistema, usuario) {
 /* Prueba cada modelo de la lista hasta que uno responda. */
 async function gemini(sistema, usuario) {
   let ultimo;
-  for (const m of MODELOS) {
-    try {
-      return await llamar(m, sistema, usuario);
-    } catch (e) {
-      ultimo = e;
-      console.log("falló", String(e).slice(0, 120));
+  for (const m of await listaModelos()) {
+    for (let v = 0; v < 2; v++) {
+      try {
+        return await llamar(m, sistema, usuario);
+      } catch (e) {
+        ultimo = e;
+        console.log("falló", String(e).slice(0, 120));
+        // 503 = el modelo está saturado un momento: se reintenta una vez antes de pasar al siguiente
+        if (!/ 503$/.test(String(e))) break;
+        await new Promise((f) => setTimeout(f, 1500));
+      }
     }
   }
   throw ultimo;
@@ -305,7 +341,7 @@ function validarPreguntas(j, plan, nOp) {
 async function crearPreguntas(b) {
   const { nOp, plan, usuario } = pedidoPreguntas(b);
   let ultimo;
-  for (let intento = 0; intento < (MODELOS.length > 2 ? 1 : 2); intento++) {
+  for (let intento = 0; intento < 1; intento++) {
     try {
       const crudo = await geminiJson(REGLAS_PREGUNTAS, usuario);
       return validarPreguntas(JSON.parse(crudo), plan, nOp);
@@ -327,7 +363,7 @@ async function llamarJson(modelo, sistema, usuario) {
       responseMimeType: "application/json",
       responseSchema: ESQUEMA_PREGUNTAS,
     };
-    if (modelo.startsWith("gemini-3")) generationConfig.thinkingConfig = { thinkingLevel: "low" };
+    if (/^gemini-([3-9]|\d{2})/.test(modelo)) generationConfig.thinkingConfig = { thinkingLevel: "low" };
     const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent`, {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-goog-api-key": CLAVE },
@@ -354,12 +390,17 @@ async function llamarJson(modelo, sistema, usuario) {
 
 async function geminiJson(sistema, usuario) {
   let ultimo;
-  for (const m of MODELOS) {
-    try {
-      return await llamarJson(m, sistema, usuario);
-    } catch (e) {
-      ultimo = e;
-      console.log("falló", String(e).slice(0, 120));
+  for (const m of await listaModelos()) {
+    for (let v = 0; v < 2; v++) {
+      try {
+        return await llamarJson(m, sistema, usuario);
+      } catch (e) {
+        ultimo = e;
+        console.log("falló", String(e).slice(0, 120));
+        // 503 = el modelo está saturado un momento: se reintenta una vez antes de pasar al siguiente
+        if (!/ 503$/.test(String(e))) break;
+        await new Promise((f) => setTimeout(f, 1500));
+      }
     }
   }
   throw ultimo;
@@ -381,6 +422,7 @@ http
   .createServer(async (req, res) => {
     const origen = req.headers.origin || "";
     if (req.method === "OPTIONS") return responder(res, 204, {}, origen);
+    if (req.url === "/modelos") return responder(res, 200, { modelos: await listaModelos() }, origen);
     if (req.url === "/salud") return responder(res, 200, { ok: true, clave: !!CLAVE, modelo: MODELO, preguntas: true }, origen);
     if (req.method !== "POST" || !RUTAS.includes(req.url || "")) {
       return responder(res, 404, { error: "no existe" }, origen);
@@ -423,3 +465,5 @@ http
     });
   })
   .listen(PUERTO, () => console.log("Apex IA en puerto", PUERTO));
+
+listaModelos(); // al arrancar, averigua qué modelos existen hoy
