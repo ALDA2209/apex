@@ -5,7 +5,7 @@ import Avatar from "./Avatar";
 import { Canvas, useFrame } from "@react-three/fiber";
 import type { Group } from "three";
 import Piloto from "./Piloto";
-import { AVATARES, CASCOS, COLORES, MOTOS, PIELES, type Perfil } from "@/lib/perfil";
+import { AVATARES, AVATAR_REAL, BARBAS, CASCOS, COLORES, LENTES, MOTOS, PIELES, SIN_CASCO, type Perfil } from "@/lib/perfil";
 import { NIVELES, type Nivel } from "@/lib/niveles";
 
 type Props = {
@@ -31,7 +31,7 @@ function Vitrina({ perfil }: { perfil: Perfil }) {
       </group>
       {/* el personaje, de pie junto al mototaxi */}
       <group position={[1.7, 0.08, 0.6]} rotation={[0, 2.75, 0]} scale={1.12}>
-        <Avatar perfil={perfil} marcha={quieto} casco={perfil.casco} />
+        <Avatar perfil={perfil} marcha={quieto} casco={perfil.casco === SIN_CASCO ? undefined : perfil.casco} />
       </group>
       <mesh position={[0, 0.02, 0]}>
         <cylinderGeometry args={[3.3, 3.4, 0.08, 64]} />
@@ -44,6 +44,8 @@ function Vitrina({ perfil }: { perfil: Perfil }) {
     </>
   );
 }
+
+const ORDEN_AVATARES = [AVATAR_REAL, 0, 1, 2];
 
 const ETIQUETA = "font-mono text-[11px] uppercase tracking-[0.24em] text-tenue";
 
@@ -84,8 +86,10 @@ export default function Menu({ perfil, alCambiar, alJugar, nivel, alNivel }: Pro
 
         <div className="anim-subir" style={{ animationDelay: "120ms" }}>
           <p className={ETIQUETA}>Personaje</p>
-          <div className="mt-3 grid grid-cols-3 gap-2">
-            {AVATARES.map((a, i) => (
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            {ORDEN_AVATARES.map((i) => {
+              const a = AVATARES[i];
+              return (
               <button
                 key={a.nombre}
                 type="button"
@@ -100,7 +104,8 @@ export default function Menu({ perfil, alCambiar, alJugar, nivel, alNivel }: Pro
                 <span className="block text-sm font-semibold">{a.nombre}</span>
                 <span className="block text-[11px] opacity-70">{a.detalle}</span>
               </button>
-            ))}
+              );
+            })}
           </div>
         </div>
 
@@ -171,6 +176,7 @@ export default function Menu({ perfil, alCambiar, alJugar, nivel, alNivel }: Pro
           </div>
         </div>
 
+        {perfil.avatar !== AVATAR_REAL && (
         <div className="anim-subir" style={{ animationDelay: "200ms" }}>
           <p className={ETIQUETA}>Tono de piel</p>
           <div className="mt-3 flex gap-3">
@@ -191,25 +197,36 @@ export default function Menu({ perfil, alCambiar, alJugar, nivel, alNivel }: Pro
             ))}
           </div>
         </div>
+        )}
 
         <div className="anim-subir" style={{ animationDelay: "240ms" }}>
-          <p className={ETIQUETA}>Casco</p>
-          <div className="mt-3 grid grid-cols-2 gap-2">
-            {CASCOS.map((nombre, i) => (
-              <button
-                key={nombre}
-                type="button"
-                onClick={() => alCambiar({ ...perfil, casco: i })}
-                className={`rounded-xl border px-3 py-3 text-sm transition ${
-                  perfil.casco === i
-                    ? "border-acento bg-acento/15 text-white"
-                    : "border-white/10 text-tenue hover:border-white/30 hover:text-white"
-                }`}
-              >
-                {nombre}
-              </button>
-            ))}
-          </div>
+          <p className={ETIQUETA}>Accesorios (opcional)</p>
+          {[
+            { titulo: "Casco", opciones: ["Sin casco", ...CASCOS], valores: [SIN_CASCO, 0, 1, 2, 3], actual: perfil.casco, campo: "casco" as const },
+            { titulo: "Lentes", opciones: LENTES, valores: [0, 1, 2], actual: perfil.lentes ?? 0, campo: "lentes" as const },
+            { titulo: "Barba", opciones: BARBAS, valores: [0, 1, 2], actual: perfil.barba ?? 0, campo: "barba" as const },
+          ].map((g) => (
+            <div key={g.titulo} className="mt-3">
+              <p className="mb-1.5 text-xs text-tenue">{g.titulo}</p>
+              <div className="grid grid-cols-3 gap-2">
+                {g.opciones.map((nombre, k) => (
+                  <button
+                    key={nombre}
+                    type="button"
+                    onClick={() => alCambiar({ ...perfil, [g.campo]: g.valores[k] })}
+                    aria-pressed={g.actual === g.valores[k]}
+                    className={`rounded-xl border px-2 py-2.5 text-sm transition ${
+                      g.actual === g.valores[k]
+                        ? "border-acento bg-acento/15 text-white"
+                        : "border-white/10 text-tenue hover:border-white/30 hover:text-white"
+                    }`}
+                  >
+                    {nombre}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
         </div>
 
         <div className="anim-subir" style={{ animationDelay: "280ms" }}>
@@ -245,7 +262,7 @@ export default function Menu({ perfil, alCambiar, alJugar, nivel, alNivel }: Pro
         </button>
 
         <p className="font-mono text-[11px] text-tenue/80">A · D o ← → para cambiar de carril</p>
-        <p className="text-[10px] text-tenue/50">Modelo 3D del mototaxi generado con Meshy (CC BY 4.0).</p>
+        <p className="text-[10px] text-tenue/50">Modelos 3D del mototaxi y del personaje generados con Meshy (CC BY 4.0).</p>
       </form>
 
       <section className="relative min-h-[46vh] md:min-h-screen">

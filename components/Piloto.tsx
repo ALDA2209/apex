@@ -1,9 +1,11 @@
 import { RoundedBox } from "@react-three/drei";
 import { DoubleSide, Quaternion, Vector3 } from "three";
 import { PIELES, atuendo, type Perfil } from "@/lib/perfil";
-import { Suspense } from "react";
+import { Suspense, useRef } from "react";
 import MotoReal from "@/components/MotoReal";
 import { useApie } from "@/lib/estado";
+import AvatarReal from "@/components/AvatarReal";
+import { AVATAR_REAL, SIN_CASCO } from "@/lib/perfil";
 
 type Pos = [number, number, number];
 
@@ -322,22 +324,35 @@ function Cabina({ moto, color }: { moto: number; color: string }) {
 
 /* Puertas de la zona de carga del mototaxi real: tapan los costados para que las cajas no se vean sueltas */
 function PuertasCarga({ color }: { color: string }) {
+  const marco = "#10131b";
+  const Barra = ({ args, pos }: { args: Pos; pos: Pos }) => (
+    <RoundedBox args={args} radius={0.012} smoothness={2} position={pos}>
+      <meshStandardMaterial color={marco} roughness={0.5} />
+    </RoundedBox>
+  );
   return (
     <group>
       {[-1, 1].map((l) => (
-        <group key={`pc${l}`} position={[l * 0.57, 1.05, 0.77]}>
-          <RoundedBox args={[0.05, 0.4, 0.5]} radius={0.02} smoothness={3}>
+        <group key={`pc${l}`} position={[l * 0.585, 0, 0.77]}>
+          {/* parte baja: lámina del color del mototaxi */}
+          <RoundedBox args={[0.06, 0.46, 0.5]} radius={0.02} smoothness={3} position={[0, 0.98, 0]}>
             <meshStandardMaterial color={color} metalness={0.05} roughness={0.5} />
           </RoundedBox>
-          {/* canto oscuro arriba y manija */}
-          <RoundedBox args={[0.058, 0.04, 0.52]} radius={0.015} smoothness={2} position={[0, 0.2, 0]}>
-            <meshStandardMaterial color="#1b1f2b" metalness={0.5} roughness={0.4} />
-          </RoundedBox>
-          <RoundedBox args={[0.03, 0.035, 0.12]} radius={0.012} smoothness={2} position={[l * 0.035, 0.07, 0.15]}>
-            <meshStandardMaterial color="#d7deee" metalness={0.8} roughness={0.3} />
-          </RoundedBox>
-          <RoundedBox args={[0.054, 0.36, 0.01]} radius={0.004} smoothness={2} position={[0, 0, -0.24]}>
-            <meshStandardMaterial color="#0b0d12" roughness={0.6} />
+          {/* parte alta: vidrio, para ver las cajas */}
+          <mesh position={[0, 1.58, 0]}>
+            <boxGeometry args={[0.025, 0.7, 0.46]} />
+            {VIDRIO}
+          </mesh>
+          {/* marco completo de la puerta */}
+          <Barra args={[0.07, 0.04, 0.54]} pos={[0, 1.95, 0]} />
+          <Barra args={[0.07, 0.04, 0.54]} pos={[0, 1.22, 0]} />
+          <Barra args={[0.07, 0.04, 0.54]} pos={[0, 0.74, 0]} />
+          {[-1, 1].map((e) => (
+            <Barra key={`e${e}`} args={[0.07, 1.25, 0.04]} pos={[0, 1.345, e * 0.26]} />
+          ))}
+          {/* manija cromada */}
+          <RoundedBox args={[0.045, 0.04, 0.15]} radius={0.015} smoothness={2} position={[l * 0.04, 1.08, 0.1]}>
+            <meshStandardMaterial color="#e4e9f4" metalness={0.9} roughness={0.2} />
           </RoundedBox>
         </group>
       ))}
@@ -359,6 +374,9 @@ export default function Piloto({
   const apie = useApie();
   const piel = (PIELES[perfil.piel] ?? PIELES[0]).valor;
   const real = (perfil.moto ?? 0) === 0;
+  const conAvatarReal = perfil.avatar === AVATAR_REAL;
+  const quieto = useRef(0);
+  const asientoZ = real ? 0.2 : 0.15;
   const at = atuendo(perfil);
   const traje = at.torso;
   const pantalon = at.pantalon;
@@ -495,7 +513,26 @@ export default function Piloto({
         </>
       )}
 
-      <group visible={!apie && !vacio} position={real ? [0, 0.5, 0] : [0, 0, 0]} scale={real ? 0.8 : 1}>
+      {conAvatarReal && (
+        <group visible={!apie && !vacio}>
+          {real && (
+            <RoundedBox args={[0.8, 0.05, 0.05]} radius={0.02} smoothness={2} position={[0, 1.3, -0.45]}>
+              <meshStandardMaterial color={metal} metalness={0.6} roughness={0.35} />
+            </RoundedBox>
+          )}
+          <Suspense fallback={null}>
+            <group position={[0, 0, asientoZ]}>
+              <AvatarReal
+                perfil={perfil}
+                marcha={quieto}
+                casco={casco === SIN_CASCO ? undefined : casco}
+                conduce={{ asiento: real ? 0.96 : 0.69, mano: real ? [1.3, -0.45 - asientoZ] : [1.1, -0.7 - asientoZ], k: real ? 0.84 : 1 }}
+              />
+            </group>
+          </Suspense>
+        </group>
+      )}
+      <group visible={!apie && !vacio && !conAvatarReal} position={real ? [0, 0.5, 0] : [0, 0, 0]} scale={real ? 0.8 : 1}>
       {real && (
         <RoundedBox args={[0.8, 0.05, 0.05]} radius={0.02} smoothness={2} position={[0, 1.1, -0.7]}>
           <meshStandardMaterial color={metal} metalness={0.6} roughness={0.35} />

@@ -5,11 +5,34 @@ import type { MutableRefObject } from "react";
 import { useFrame } from "@react-three/fiber";
 import { RoundedBox } from "@react-three/drei";
 import type { Group } from "three";
-import { PIELES, atuendo, type Perfil } from "@/lib/perfil";
+import { Suspense } from "react";
+import { AVATAR_REAL, PIELES, atuendo, type Perfil } from "@/lib/perfil";
 import { Casco } from "@/components/Piloto";
+import Accesorios from "@/components/Accesorios";
+import AvatarReal from "@/components/AvatarReal";
 
-/** El personaje a pie. Mira hacia -z cuando rotation.y = 0. */
-export default function Avatar({
+type Props = {
+  perfil: Perfil;
+  marcha: MutableRefObject<number>;
+  estira?: MutableRefObject<number>;
+  sentado?: boolean;
+  come?: MutableRefObject<number>;
+  casco?: number;
+};
+
+/** El personaje a pie. Mira hacia -z cuando rotation.y = 0. Elige el modelo realista o el dibujado. */
+export default function Avatar(props: Props) {
+  if (props.perfil.avatar === AVATAR_REAL) {
+    return (
+      <Suspense fallback={null}>
+        <AvatarReal {...props} />
+      </Suspense>
+    );
+  }
+  return <AvatarDibujado {...props} />;
+}
+
+function AvatarDibujado({
   perfil,
   marcha,
   estira,
@@ -205,6 +228,7 @@ export default function Avatar({
         <RoundedBox args={[0.07, 0.014, 0.01]} radius={0.005} smoothness={2} position={[0, -0.055, -0.131]}>
           <meshStandardMaterial color="#8a3b3b" roughness={0.6} />
         </RoundedBox>
+        <Accesorios lentes={perfil.lentes} barba={perfil.barba} adelante={0.13} />
         {casco !== undefined ? (
           <Casco casco={casco} color={color} />
         ) : at.pelo === 1 ? (

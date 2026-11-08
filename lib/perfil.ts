@@ -5,8 +5,12 @@ export type Perfil = {
   piel: number;
   /** modelo de mototaxi: 0 real (3D), 1 cabina de dos tonos, 2 clásico */
   moto?: number;
-  /** personaje: 0 repartidor, 1 emprendedor, 2 aventurero */
+  /** personaje: 0 repartidor, 1 emprendedor, 2 aventurero, 3 real (3D) */
   avatar?: number;
+  /** lentes: 0 ninguno, 1 redondos, 2 de sol */
+  lentes?: number;
+  /** barba: 0 ninguna, 1 corta, 2 completa */
+  barba?: number;
 };
 
 export const COLORES = [
@@ -43,7 +47,13 @@ export const AVATARES: Atuendo[] = [
   { nombre: "Repartidor", detalle: "Traje oscuro", torso: "#222838", pantalon: "#1b2030", chaleco: false, bolso: false, pelo: 0, colorPelo: "#17120f" },
   { nombre: "Emprendedor", detalle: "Camisa y chaleco", torso: "#e9edf5", pantalon: "#2b4a7a", chaleco: true, bolso: false, pelo: 1, colorPelo: "#17120f" },
   { nombre: "Aventurero", detalle: "Chaqueta y bolso", torso: "#4a5a3a", pantalon: "#3a3226", chaleco: false, bolso: true, pelo: 2, colorPelo: "#2a1a12" },
+  { nombre: "Real", detalle: "Modelo 3D realista", torso: "#2a3550", pantalon: "#1b2030", chaleco: false, bolso: false, pelo: 0, colorPelo: "#17120f" },
 ];
+
+/** índice del personaje realista (modelo 3D) */
+export const AVATAR_REAL = 3;
+export const LENTES = ["Ninguno", "Redondos", "De sol"];
+export const BARBAS = ["Ninguna", "Corta", "Completa"];
 
 export function atuendo(p: Perfil): Atuendo {
   return AVATARES[p.avatar ?? 0] ?? AVATARES[0];
@@ -58,12 +68,16 @@ export const PIELES = [
 ];
 
 export const CASCOS = ["Integral", "Abierto", "Cresta", "Retro"];
+/** valor de perfil.casco cuando no se quiere casco */
+export const SIN_CASCO = 4;
 
 export const PERFIL_INICIAL: Perfil = {
   nombre: "",
   color: COLORES[0].valor,
-  casco: 0,
+  casco: SIN_CASCO,
   piel: 1,
   moto: 0,
-  avatar: 0,
+  avatar: 3,
+  lentes: 0,
+  barba: 0,
 };
