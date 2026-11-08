@@ -353,6 +353,47 @@ function programarPaso(n: number, t: number) {
   }
 }
 
+/* ---------- efectos de la cinemática ---------- */
+export function tic() {
+  try {
+    if (!ctx) return;
+    const t = ctx.currentTime;
+    const o = ctx.createOscillator();
+    o.type = "square";
+    o.frequency.value = 1500 + Math.random() * 500;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.012, t);
+    g.gain.exponentialRampToValueAtTime(0.0005, t + 0.03);
+    o.connect(g);
+    g.connect(gEfectos);
+    o.start(t);
+    o.stop(t + 0.04);
+  } catch {}
+}
+
+export function whoosh() {
+  try {
+    if (!ctx) return;
+    const t = ctx.currentTime;
+    const f = ctx.createBufferSource();
+    f.buffer = ruido;
+    const bp = ctx.createBiquadFilter();
+    bp.type = "bandpass";
+    bp.Q.value = 1.2;
+    bp.frequency.setValueAtTime(300, t);
+    bp.frequency.exponentialRampToValueAtTime(3200, t + 0.5);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(0.25, t + 0.18);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.7);
+    f.connect(bp);
+    bp.connect(g);
+    g.connect(gEfectos);
+    f.start(t);
+    f.stop(t + 0.75);
+  } catch {}
+}
+
 /* ---------- voces de los diálogos ---------- */
 export type Quien = "oficial" | "cliente" | "vendedor" | "narrador";
 let voces: SpeechSynthesisVoice[] = [];

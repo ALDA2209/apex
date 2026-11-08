@@ -161,5 +161,5 @@ export default function Briefing({
     );
   }
 
-  return <Historia escenas={escenas} alTerminar={() => setReglamento(true)} etiquetaFinal="ver reglamento" />;
+  return <Historia escenas={escenas} alTerminar={() => setReglamento(true)} />;
 }
