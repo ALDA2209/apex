@@ -59,9 +59,13 @@ function Vitrina({ perfil }: { perfil: Perfil }) {
       <group position={[1.7, 0.08, 0.6]} rotation={[0, 2.75, 0]} scale={1.12}>
         <Avatar perfil={perfil} marcha={quieto} casco={perfil.casco === SIN_CASCO ? undefined : perfil.casco} />
       </group>
+      {/* luces propias del personaje: de frente (se ve la cara) y de contorno (se separa del fondo) */}
+      <pointLight position={[2.6, 2.6, 3.4]} intensity={26} distance={9} color="#fff1e6" />
+      <pointLight position={[3.4, 2.4, -1.2]} intensity={16} distance={8} color="#7fe3ff" />
+      <pointLight position={[0.2, 1.2, 3.6]} intensity={8} distance={7} color="#ffd9c4" />
       <mesh position={[0, 0.02, 0]}>
         <cylinderGeometry args={[3.3, 3.4, 0.08, 64]} />
-        <meshStandardMaterial color="#141a33" metalness={0.6} roughness={0.35} />
+        <meshStandardMaterial color="#1f2a52" metalness={0.5} roughness={0.45} />
       </mesh>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.07, 0]}>
         <ringGeometry args={[3.1, 3.2, 96]} />
@@ -305,7 +309,7 @@ export default function Menu({ perfil, alCambiar, alJugar }: Props) {
 
       <section className="sticky top-0 z-20 order-first h-[40vh] min-h-[260px] bg-[#0b0820] md:order-none md:h-screen md:min-h-0 md:self-start md:bg-transparent">
         <Canvas camera={{ position: [5.4, 4.3, 8.9], fov: 38 }} dpr={[1, 2]}>
-          <hemisphereLight args={["#9a7bff", "#1a1030", 1.1]} />
+          <hemisphereLight args={["#b3a0ff", "#2a2050", 1.5]} />
           <directionalLight position={[3, 5, 2]} intensity={2.2} color="#ffb27a" />
           <directionalLight position={[-4, 3, -3]} intensity={1.4} color="#6d7bff" />
           <Vitrina perfil={prueba ?? perfil} />
