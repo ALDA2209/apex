@@ -95,6 +95,14 @@ export default function Menu({ perfil, alCambiar, alJugar }: Props) {
   /* Las preguntas se piden a la IA solo al pulsar «Empezar» (así no se gasta cupo de Gemini al abrir o recargar).
      Al abrir el menú solo se despierta el servidor, que en el plan gratis se duerme. */
   const [iniciando, setIniciando] = useState(false);
+  /* Si la IA tarda más de 40 s, aparece el botón de respaldo sin cancelar la espera. */
+  const [tarda, setTarda] = useState(false);
+  useEffect(() => {
+    setTarda(false);
+    if (!iniciando) return;
+    const t = setTimeout(() => setTarda(true), 40000);
+    return () => clearTimeout(t);
+  }, [iniciando]);
   useEffect(() => {
     despertarIA();
   }, []);
@@ -292,11 +300,12 @@ export default function Menu({ perfil, alCambiar, alJugar }: Props) {
           );
         })()}
 
-        {valido && !iniciando && !iaLista && (ia.fase === "error" || ia.fase === "sin-url") && (
+        {valido && !iaLista && (iniciando ? tarda : ia.fase === "error" || ia.fase === "sin-url") && (
           <button
             type="button"
             onClick={() => {
               prepararRespaldo(dia.nivel);
+              setIniciando(false);
               alJugar();
             }}
             className="anim-subir -mt-2 flex items-center justify-between rounded-2xl border border-white/20 px-6 py-3.5 text-left text-[14px] font-semibold text-white transition hover:border-white/50 hover:bg-white/[0.05] active:scale-[0.99]"
