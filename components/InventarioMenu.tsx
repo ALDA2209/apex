@@ -68,7 +68,7 @@ export default function InventarioMenu({ perfil, alCambiar, alCerrar, alIrTienda
   const grupo = (titulo: string, items: Item[]) => (
     <div key={titulo}>
       <p className={ETIQUETA}>{titulo}</p>
-      <div className="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-4">{items.map(tarjeta)}</div>
+      <div className="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-4 [@media(max-height:480px)]:grid-cols-6">{items.map(tarjeta)}</div>
     </div>
   );
 
@@ -83,12 +83,12 @@ export default function InventarioMenu({ perfil, alCambiar, alCerrar, alIrTienda
         role="dialog"
         aria-modal="true"
         aria-label="Inventario"
-        className="anim-subir flex max-h-[88vh] w-full max-w-xl flex-col overflow-hidden rounded-t-3xl border border-white/15 bg-[#0c1229]/95 shadow-2xl backdrop-blur-xl sm:rounded-3xl"
+        className="anim-subir flex max-h-[88vh] w-full max-w-xl [@media(max-height:480px)]:max-h-[96vh] [@media(max-height:480px)]:max-w-2xl flex-col overflow-hidden rounded-t-3xl border border-white/15 bg-[#0c1229]/95 shadow-2xl backdrop-blur-xl sm:rounded-3xl"
       >
-        <div className="flex items-start justify-between gap-3 border-b border-white/10 px-5 py-4">
+        <div className="flex items-start justify-between gap-3 border-b border-white/10 px-5 py-4 [@media(max-height:480px)]:py-2">
           <div>
-            <h2 className="font-display text-2xl font-bold leading-none tracking-tight">Inventario</h2>
-            <p className="mt-1.5 text-[12px] text-tenue">
+            <h2 className="font-display text-2xl font-bold leading-none tracking-tight [@media(max-height:480px)]:text-xl">Inventario</h2>
+            <p className="mt-1.5 text-[12px] text-tenue [@media(max-height:480px)]:hidden">
               {vacio ? "Aquí verás todo lo que compres." : `${compradas.length} ${compradas.length === 1 ? "cosa comprada" : "cosas compradas"} · toca una para ponértela`}
             </p>
           </div>
@@ -96,13 +96,13 @@ export default function InventarioMenu({ perfil, alCambiar, alCerrar, alIrTienda
             type="button"
             onClick={alCerrar}
             aria-label="Cerrar inventario"
-            className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-white/15 text-tenue transition hover:border-white/40 hover:text-white"
+            className="grid h-9 w-9 shrink-0 [@media(max-height:480px)]:h-8 [@media(max-height:480px)]:w-8 place-items-center rounded-full border border-white/15 text-tenue transition hover:border-white/40 hover:text-white"
           >
             ✕
           </button>
         </div>
 
-        <div className="grid grid-cols-3 gap-1.5 px-5 pt-4" role="tablist">
+        <div className="grid grid-cols-3 gap-1.5 px-5 pt-4 [@media(max-height:480px)]:pt-2" role="tablist">
           {PESTANAS.map((t) => (
             <button
               key={t.id}
@@ -110,16 +110,16 @@ export default function InventarioMenu({ perfil, alCambiar, alCerrar, alIrTienda
               role="tab"
               aria-selected={pestana === t.id}
               onClick={() => setPestana(t.id)}
-              className={`rounded-xl border px-2 py-2.5 font-mono text-[11px] uppercase tracking-[0.12em] transition ${
+              className={`whitespace-nowrap rounded-xl border px-1 py-2.5 font-mono text-[10px] uppercase tracking-[0.06em] transition sm:px-2 sm:text-[11px] sm:tracking-[0.12em] [@media(max-height:480px)]:py-1.5 ${
                 pestana === t.id ? "border-acento bg-acento/15 text-white" : "border-white/10 text-tenue hover:border-white/30 hover:text-white"
               }`}
             >
-              {t.nombre} <span className="text-tenue/70">· {cuenta(t.id)}</span>
+              {t.nombre} <span className="text-tenue/70">{cuenta(t.id)}</span>
             </button>
           ))}
         </div>
 
-        <div className="flex flex-col gap-5 overflow-y-auto px-5 py-4">
+        <div className="flex flex-col gap-5 overflow-y-auto px-5 py-4 [@media(max-height:480px)]:gap-3 [@media(max-height:480px)]:py-2">
           {vacio && (
             <div className="rounded-xl border border-dashed border-white/15 p-4 text-center">
               <p className="text-sm font-semibold text-white">Todavía no compraste nada</p>
@@ -154,7 +154,7 @@ export default function InventarioMenu({ perfil, alCambiar, alCerrar, alIrTienda
             ))}
         </div>
 
-        <div className="flex items-center justify-between gap-3 border-t border-white/10 px-5 py-3">
+        <div className="flex items-center justify-between gap-3 border-t border-white/10 px-5 py-3 [@media(max-height:480px)]:py-1.5">
           <button type="button" onClick={alIrTienda} className="font-mono text-[11px] uppercase tracking-[0.18em] transition hover:text-white" style={{ color: "#fbbf24" }}>
             Ir a la tienda →
           </button>

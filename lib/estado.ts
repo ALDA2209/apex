@@ -475,6 +475,19 @@ export function auxilioDeRuta() {
 }
 
 export function reiniciarPartida() {
+  /* Posición y restos de la partida anterior: si no se limpian, el botón "Subir" mide la distancia
+     a un lugar donde el mototaxi ya no está (pasaba al reintentar o al volver desde el menú). */
+  estado.x = 0;
+  estado.z = 0;
+  estado.ax = 0;
+  estado.az = 0;
+  estado.berma = 1;
+  estado.bocinaT = 0;
+  estado.lugar = "";
+  estado.puerta = "";
+  estado.cliente = "";
+  estado.clienteT = 0;
+  estado.cerca = "";
   estado.soles = 0;
   estado.choques = 0;
   estado.perdido = 0;
