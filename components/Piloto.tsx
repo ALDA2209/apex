@@ -1,6 +1,8 @@
 import { RoundedBox } from "@react-three/drei";
 import { DoubleSide, Quaternion, Vector3 } from "three";
-import { PIELES, type Perfil } from "@/lib/perfil";
+import { PIELES, atuendo, type Perfil } from "@/lib/perfil";
+import { Suspense } from "react";
+import MotoReal from "@/components/MotoReal";
 import { useApie } from "@/lib/estado";
 
 type Pos = [number, number, number];
@@ -154,21 +156,199 @@ function CascoAbierto({
   );
 }
 
+/* El casco elegido, listo para ponerlo sobre una cabeza de radio 0,14 */
+export function Casco({ casco, color }: { casco: number; color: string }) {
+  return (
+    <>
+      {casco === 0 && <CascoIntegral cascara="#f4f6fb" visera={VISERA} acento={color} cresta={false} />}
+      {casco === 1 && <CascoAbierto cascara={color} acento={color} retro={false} />}
+      {casco === 2 && <CascoIntegral cascara="#171a24" visera={color} acento={color} cresta />}
+      {casco === 3 && <CascoAbierto cascara="#a8703f" acento={color} retro />}
+    </>
+  );
+}
+
+const VIDRIO = (
+  <meshStandardMaterial
+    color="#8fb8e8"
+    transparent
+    opacity={0.2}
+    roughness={0.08}
+    metalness={0.35}
+    side={DoubleSide}
+    depthWrite={false}
+  />
+);
+
+/* Cabina del mototaxi: parabrisas, puertas, techo, faros y guardabarros */
+function Cabina({ moto, color }: { moto: number; color: string }) {
+  const bicolor = moto === 0;
+  const blanco = "#f3f5f9";
+  const puerta = bicolor ? blanco : color;
+  const techo = bicolor ? blanco : color;
+  const negro = "#0b0d12";
+  const GIRO = 0.25;
+
+  return (
+    <group>
+      {/* tablero delantero */}
+      <RoundedBox args={[0.98, 0.5, 0.7]} radius={0.14} smoothness={4} position={[0, 0.88, -1.1]}>
+        <Pintura color={color} />
+      </RoundedBox>
+      <RoundedBox args={[0.9, 0.12, 0.5]} radius={0.05} smoothness={3} position={[0, 1.12, -0.95]}>
+        <meshStandardMaterial color="#14171f" roughness={0.7} />
+      </RoundedBox>
+
+      {/* guardabarros sobre la rueda delantera */}
+      <mesh position={[0, 0.33, -1.45]} rotation={[0, 0, Math.PI / 2]}>
+        <cylinderGeometry args={[0.41, 0.41, 0.22, 28, 1, true, 0, Math.PI]} />
+        <meshStandardMaterial color={color} metalness={0.5} roughness={0.32} side={DoubleSide} />
+      </mesh>
+      {[-1, 1].map((l) => (
+        <mesh key={`tapa${l}`} position={[l * 0.11, 0.33, -1.45]} rotation={[0, Math.PI / 2, 0]}>
+          <circleGeometry args={[0.41, 24, 0, Math.PI]} />
+          <meshStandardMaterial color={color} metalness={0.5} roughness={0.32} side={DoubleSide} />
+        </mesh>
+      ))}
+
+      {/* faros */}
+      {bicolor ? (
+        <group>
+          <RoundedBox args={[0.86, 0.2, 0.05]} radius={0.04} smoothness={3} position={[0, 0.82, -1.46]}>
+            <meshStandardMaterial color={negro} roughness={0.4} />
+          </RoundedBox>
+          {[-1, 1].map((l) => (
+            <RoundedBox key={`faro${l}`} args={[0.24, 0.13, 0.04]} radius={0.04} smoothness={3} position={[l * 0.27, 0.82, -1.49]}>
+              <meshStandardMaterial color="#ffffff" emissive="#ffe9b8" emissiveIntensity={3.2} />
+            </RoundedBox>
+          ))}
+          <RoundedBox args={[0.18, 0.09, 0.02]} radius={0.01} smoothness={2} position={[0, 1.0, -1.455]}>
+            <meshStandardMaterial color="#ff9a1a" roughness={0.5} />
+          </RoundedBox>
+        </group>
+      ) : (
+        <group>
+          {[-1, 1].map((l) => (
+            <group key={`faro${l}`} position={[l * 0.3, 0.84, -1.47]}>
+              <RoundedBox args={[0.26, 0.2, 0.05]} radius={0.05} smoothness={3}>
+                <meshStandardMaterial color={negro} roughness={0.4} />
+              </RoundedBox>
+              <mesh position={[-l * 0.02, 0, -0.03]} rotation={[Math.PI / 2, 0, 0]}>
+                <cylinderGeometry args={[0.07, 0.07, 0.03, 20]} />
+                <meshStandardMaterial color="#ffffff" emissive="#ffe9b8" emissiveIntensity={3.2} />
+              </mesh>
+              <RoundedBox args={[0.07, 0.07, 0.02]} radius={0.01} smoothness={2} position={[l * 0.08, 0, -0.03]}>
+                <meshStandardMaterial color="#000" emissive="#ff8a1a" emissiveIntensity={2} />
+              </RoundedBox>
+            </group>
+          ))}
+          <RoundedBox args={[0.11, 0.38, 0.03]} radius={0.01} smoothness={2} position={[0, 0.9, -1.455]}>
+            <meshStandardMaterial color={negro} roughness={0.5} />
+          </RoundedBox>
+        </group>
+      )}
+
+      {/* puertas y vidrios laterales */}
+      {[-1, 1].map((l) => (
+        <group key={`puerta${l}`}>
+          <RoundedBox args={[0.05, 0.7, 1.12]} radius={0.02} smoothness={2} position={[l * 0.5, 0.9, -0.08]}>
+            <Pintura color={puerta} />
+          </RoundedBox>
+          <mesh position={[l * 0.5, 1.58, -0.04]}>
+            <boxGeometry args={[0.02, 0.8, 1.14]} />
+            {VIDRIO}
+          </mesh>
+          <RoundedBox args={[0.03, 0.03, 0.14]} radius={0.01} smoothness={2} position={[l * 0.535, 1.0, 0.32]}>
+            <meshStandardMaterial color="#1b1f2b" metalness={0.6} roughness={0.4} />
+          </RoundedBox>
+          {/* espejo */}
+          <Segmento a={[l * 0.52, 1.34, -0.72]} b={[l * 0.7, 1.4, -0.82]} radio={0.012} color="#1b1f2b" />
+          <mesh position={[l * 0.7, 1.4, -0.82]} scale={[0.5, 1, 0.8]}>
+            <sphereGeometry args={[0.07, 14, 14]} />
+            <meshStandardMaterial color={bicolor ? "#1b1f2b" : "#d6242c"} roughness={0.4} />
+          </mesh>
+        </group>
+      ))}
+
+      {/* parabrisas */}
+      <mesh position={[0, 1.57, -0.735]} rotation={[GIRO, 0, 0]}>
+        <planeGeometry args={[0.96, 0.95]} />
+        {VIDRIO}
+      </mesh>
+
+      {/* columnas */}
+      {[-1, 1].map((l) => (
+        <group key={`col${l}`}>
+          <Segmento a={[l * 0.49, 1.14, -0.84]} b={[l * 0.49, 2.03, -0.62]} radio={0.03} color={bicolor ? blanco : color} />
+          <Segmento a={[l * 0.5, 0.9, 0.58]} b={[l * 0.5, 2.03, 0.58]} radio={0.03} color={bicolor ? blanco : color} />
+          <Segmento a={[l * 0.5, 1.2, -0.62]} b={[l * 0.5, 2.03, -0.62]} radio={0.02} color={bicolor ? blanco : color} />
+        </group>
+      ))}
+
+      {/* techo */}
+      <RoundedBox args={[1.12, 0.09, 1.5]} radius={0.045} smoothness={3} position={[0, 2.06, -0.03]}>
+        <meshStandardMaterial color={techo} metalness={0.4} roughness={0.35} />
+      </RoundedBox>
+      <RoundedBox args={[1.06, 0.05, 0.2]} radius={0.02} smoothness={2} position={[0, 2.03, -0.82]} rotation={[0.2, 0, 0]}>
+        <meshStandardMaterial color={bicolor ? blanco : color} metalness={0.4} roughness={0.35} />
+      </RoundedBox>
+      {!bicolor && (
+        <group>
+          {[-1, 1].map((l) => (
+            <Segmento key={`baca${l}`} a={[l * 0.5, 2.1, 0.55]} b={[l * 0.5, 2.1, -0.7]} radio={0.016} color="#1b1f2b" />
+          ))}
+          <Segmento a={[-0.5, 2.1, -0.7]} b={[0.5, 2.1, -0.7]} radio={0.016} color="#1b1f2b" />
+          <Segmento a={[-0.5, 2.1, 0.55]} b={[0.5, 2.1, 0.55]} radio={0.016} color="#1b1f2b" />
+          {[-0.3, 0, 0.3].map((x) => (
+            <mesh key={`luzbaca${x}`} position={[x, 2.15, -0.7]}>
+              <sphereGeometry args={[0.035, 10, 10]} />
+              <meshStandardMaterial color="#000" emissive="#ff7a2a" emissiveIntensity={2.5} />
+            </mesh>
+          ))}
+        </group>
+      )}
+
+      {/* pared trasera: panel abajo y vidrio arriba */}
+      <RoundedBox args={[0.98, 0.42, 0.05]} radius={0.02} smoothness={2} position={[0, 0.82, 0.6]}>
+        <Pintura color={color} />
+      </RoundedBox>
+      <mesh position={[0, 1.55, 0.6]}>
+        <planeGeometry args={[0.96, 0.95]} />
+        {VIDRIO}
+      </mesh>
+    </group>
+  );
+}
+
 export default function Piloto({
   perfil,
   cajas = 5,
+  vacio = false,
 }: {
   perfil: Perfil;
   cajas?: number;
+  /** sin conductor (en el menú el personaje se ve afuera) */
+  vacio?: boolean;
 }) {
   const { color, casco } = perfil;
   const apie = useApie();
   const piel = (PIELES[perfil.piel] ?? PIELES[0]).valor;
-  const traje = "#222838";
+  const real = (perfil.moto ?? 0) === 0;
+  const at = atuendo(perfil);
+  const traje = at.torso;
+  const pantalon = at.pantalon;
   const guante = "#10131b";
   const metal = "#1b1f2b";
 
   const carton = ["#c9a26b", "#b98a52", "#d6b27c"];
+  const posTecho: Pos[] = [
+    [-0.3, 2.27, 0],
+    [0.3, 2.27, 0],
+    [-0.3, 2.27, 0.55],
+    [0.3, 2.27, 0.55],
+    [-0.3, 2.27, 1.1],
+    [0.3, 2.27, 1.1],
+  ];
   const posCajas: Pos[] = [
     [-0.32, 0.79, 0.88],
     [0.32, 0.79, 0.88],
@@ -180,6 +360,8 @@ export default function Piloto({
 
   return (
     <group>
+      {!real && (
+        <>
       {/* rueda delantera, horquilla y manubrio */}
       <Rueda posicion={[0, 0.33, -1.45]} radio={0.33} ancho={0.16} acento={color} />
       <Segmento a={[0, 0.33, -1.45]} b={[0, 1.08, -0.72]} radio={0.03} color={metal} />
@@ -187,14 +369,7 @@ export default function Piloto({
         <meshStandardMaterial color={metal} metalness={0.6} roughness={0.35} />
       </RoundedBox>
 
-      {/* carenado delantero y faro */}
-      <RoundedBox args={[0.55, 0.38, 0.7]} radius={0.12} smoothness={4} position={[0, 0.66, -1.25]}>
-        <Pintura color={color} />
-      </RoundedBox>
-      <mesh position={[0, 0.74, -1.62]}>
-        <sphereGeometry args={[0.1, 16, 16]} />
-        <meshStandardMaterial color="#000000" emissive="#ffe2a8" emissiveIntensity={4} />
-      </mesh>
+      <Cabina moto={(perfil.moto ?? 0) - 1} color={color} />
 
       {/* piso y costados */}
       <RoundedBox args={[0.95, 0.1, 1.35]} radius={0.04} smoothness={3} position={[0, 0.4, -0.2]}>
@@ -241,13 +416,31 @@ export default function Piloto({
       <Rueda posicion={[-0.8, 0.34, 1.4]} radio={0.34} ancho={0.26} acento={color} />
       <Rueda posicion={[0.8, 0.34, 1.4]} radio={0.34} ancho={0.26} acento={color} />
 
-      {/* cajas de mercadería */}
-      {posCajas.slice(0, Math.max(0, Math.min(6, cajas))).map((p, i) => (
-        <RoundedBox key={`caja${i}`} args={[0.55, 0.45, 0.42]} radius={0.02} smoothness={2} position={p}>
-          <meshStandardMaterial color={carton[i % 3]} roughness={0.85} />
-        </RoundedBox>
-      ))}
+        </>
+      )}
 
+      {/* cajas de mercadería */}
+      {real ? (
+        <>
+          <Suspense fallback={null}>
+            <MotoReal color={color} />
+          </Suspense>
+          {posTecho.slice(0, Math.max(0, Math.min(6, cajas))).map((p, i) => (
+            <RoundedBox key={`caja${i}`} args={[0.46, 0.36, 0.4]} radius={0.02} smoothness={2} position={p}>
+              <meshStandardMaterial color={carton[i % 3]} roughness={0.85} />
+            </RoundedBox>
+          ))}
+        </>
+      ) : (
+        posCajas.slice(0, Math.max(0, Math.min(6, cajas))).map((p, i) => (
+          <RoundedBox key={`caja${i}`} args={[0.55, 0.45, 0.42]} radius={0.02} smoothness={2} position={p}>
+            <meshStandardMaterial color={carton[i % 3]} roughness={0.85} />
+          </RoundedBox>
+        ))
+      )}
+
+      {!real && (
+        <>
       {/* luces traseras y luz inferior */}
       {[-1, 1].map((l) => (
         <RoundedBox
@@ -272,22 +465,15 @@ export default function Piloto({
         </RoundedBox>
       ))}
 
-      {/* armazón y techo semitransparente */}
-      {[-1, 1].map((l) => (
-        <group key={`arco${l}`}>
-          <Segmento a={[l * 0.5, 0.6, 0.5]} b={[l * 0.5, 2.05, 0.5]} radio={0.028} color={color} />
-          <Segmento a={[l * 0.5, 0.7, -0.62]} b={[l * 0.5, 2.05, -0.62]} radio={0.028} color={color} />
-          <Segmento a={[l * 0.5, 2.05, 0.5]} b={[l * 0.5, 2.05, -0.62]} radio={0.028} color={color} />
-        </group>
-      ))}
-      <Segmento a={[-0.5, 2.05, -0.62]} b={[0.5, 2.05, -0.62]} radio={0.028} color={color} />
-      <Segmento a={[-0.5, 2.05, 0.5]} b={[0.5, 2.05, 0.5]} radio={0.028} color={color} />
-      <mesh position={[0, 2.06, -0.06]} rotation={[-Math.PI / 2, 0, 0]}>
-        <planeGeometry args={[1.0, 1.12]} />
-        <meshStandardMaterial color={color} transparent opacity={0.25} side={DoubleSide} />
-      </mesh>
+        </>
+      )}
 
-      <group visible={!apie}>
+      <group visible={!apie && !vacio} position={real ? [0, 0.5, 0] : [0, 0, 0]} scale={real ? 0.8 : 1}>
+      {real && (
+        <RoundedBox args={[0.8, 0.05, 0.05]} radius={0.02} smoothness={2} position={[0, 1.1, -0.7]}>
+          <meshStandardMaterial color={metal} metalness={0.6} roughness={0.35} />
+        </RoundedBox>
+      )}
       {/* piloto: tronco */}
       <RoundedBox args={[0.36, 0.22, 0.24]} radius={0.08} smoothness={4} position={[0, 0.84, 0.2]}>
         <meshStandardMaterial color={traje} roughness={0.6} />
@@ -298,6 +484,12 @@ export default function Piloto({
       <RoundedBox args={[0.52, 0.05, 0.3]} radius={0.02} smoothness={2} position={[0, 1.17, 0.2]}>
         <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.35} roughness={0.5} />
       </RoundedBox>
+
+      {at.chaleco && (
+        <RoundedBox args={[0.53, 0.36, 0.31]} radius={0.1} smoothness={3} position={[0, 1.12, 0.2]}>
+          <meshStandardMaterial color={color} roughness={0.6} />
+        </RoundedBox>
+      )}
 
       {/* piloto: brazos y piernas */}
       {[-1, 1].map((l) => (
@@ -313,8 +505,8 @@ export default function Piloto({
             <meshStandardMaterial color={guante} roughness={0.5} />
           </mesh>
 
-          <Segmento a={[l * 0.14, 0.75, 0.15]} b={[l * 0.15, 0.78, -0.35]} radio={0.075} color={traje} />
-          <Segmento a={[l * 0.15, 0.78, -0.35]} b={[l * 0.16, 0.5, -0.5]} radio={0.06} color={traje} />
+          <Segmento a={[l * 0.14, 0.75, 0.15]} b={[l * 0.15, 0.78, -0.35]} radio={0.075} color={pantalon} />
+          <Segmento a={[l * 0.15, 0.78, -0.35]} b={[l * 0.16, 0.5, -0.5]} radio={0.06} color={pantalon} />
           <RoundedBox
             args={[0.12, 0.09, 0.24]}
             radius={0.03}
@@ -361,10 +553,7 @@ export default function Piloto({
           <meshStandardMaterial color="#8a3b3b" roughness={0.6} />
         </RoundedBox>
 
-        {casco === 0 && <CascoIntegral cascara="#f4f6fb" visera={VISERA} acento={color} cresta={false} />}
-        {casco === 1 && <CascoAbierto cascara={color} acento={color} retro={false} />}
-        {casco === 2 && <CascoIntegral cascara="#171a24" visera={color} acento={color} cresta />}
-        {casco === 3 && <CascoAbierto cascara="#a8703f" acento={color} retro />}
+        <Casco casco={casco} color={color} />
       </group>
       </group>
     </group>

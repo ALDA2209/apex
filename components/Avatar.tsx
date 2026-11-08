@@ -5,10 +5,8 @@ import type { MutableRefObject } from "react";
 import { useFrame } from "@react-three/fiber";
 import { RoundedBox } from "@react-three/drei";
 import type { Group } from "three";
-import { PIELES, type Perfil } from "@/lib/perfil";
-
-const TRAJE = "#222838";
-const PANTALON = "#1b2030";
+import { PIELES, atuendo, type Perfil } from "@/lib/perfil";
+import { Casco } from "@/components/Piloto";
 
 /** El personaje a pie. Mira hacia -z cuando rotation.y = 0. */
 export default function Avatar({
@@ -17,6 +15,7 @@ export default function Avatar({
   estira,
   sentado = false,
   come,
+  casco,
 }: {
   perfil: Perfil;
   /** 0 = quieto, 1 = caminando. Se lee en cada cuadro. */
@@ -27,6 +26,8 @@ export default function Avatar({
   sentado?: boolean;
   /** 0 = manos en la mesa, 1 = llevándose comida a la boca. */
   come?: MutableRefObject<number>;
+  /** si se indica, lleva ese casco puesto en vez de pelo o gorra */
+  casco?: number;
 }) {
   const piernaI = useRef<Group>(null);
   const piernaD = useRef<Group>(null);
@@ -39,6 +40,9 @@ export default function Avatar({
 
   const piel = (PIELES[perfil.piel] ?? PIELES[0]).valor;
   const color = perfil.color;
+  const at = atuendo(perfil);
+  const TRAJE = at.torso;
+  const PANTALON = at.pantalon;
 
   useFrame((_, delta) => {
     const dt = Math.min(delta, 0.05);
@@ -128,6 +132,25 @@ export default function Avatar({
         <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.35} roughness={0.5} />
       </RoundedBox>
 
+      {at.chaleco && (
+        <RoundedBox args={[0.53, 0.38, 0.31]} radius={0.1} smoothness={3} position={[0, 1.25, 0]}>
+          <meshStandardMaterial color={color} roughness={0.6} />
+        </RoundedBox>
+      )}
+      {at.bolso && (
+        <group>
+          <RoundedBox args={[0.05, 0.7, 0.02]} radius={0.01} smoothness={2} position={[0, 1.24, -0.145]} rotation={[0, 0, 0.7]}>
+            <meshStandardMaterial color="#2a2118" roughness={0.8} />
+          </RoundedBox>
+          <RoundedBox args={[0.05, 0.7, 0.02]} radius={0.01} smoothness={2} position={[0, 1.24, 0.145]} rotation={[0, 0, 0.7]}>
+            <meshStandardMaterial color="#2a2118" roughness={0.8} />
+          </RoundedBox>
+          <RoundedBox args={[0.26, 0.2, 0.1]} radius={0.04} smoothness={3} position={[-0.3, 0.98, 0.04]}>
+            <meshStandardMaterial color="#6b4a2a" roughness={0.8} />
+          </RoundedBox>
+        </group>
+      )}
+
       {/* brazos */}
       {(
         [
@@ -182,11 +205,32 @@ export default function Avatar({
         <RoundedBox args={[0.07, 0.014, 0.01]} radius={0.005} smoothness={2} position={[0, -0.055, -0.131]}>
           <meshStandardMaterial color="#8a3b3b" roughness={0.6} />
         </RoundedBox>
-        {/* pelo: a pie no lleva casco */}
-        <mesh position={[0, 0.03, 0.012]}>
-          <sphereGeometry args={[0.152, 24, 14, 0, Math.PI * 2, 0, Math.PI * 0.5]} />
-          <meshStandardMaterial color="#17120f" roughness={0.9} />
-        </mesh>
+        {casco !== undefined ? (
+          <Casco casco={casco} color={color} />
+        ) : at.pelo === 1 ? (
+          <group>
+            <mesh position={[0, 0.03, 0.012]}>
+              <sphereGeometry args={[0.152, 24, 14, 0, Math.PI * 2, 0, Math.PI * 0.5]} />
+              <meshStandardMaterial color={color} roughness={0.6} />
+            </mesh>
+            <RoundedBox args={[0.22, 0.02, 0.15]} radius={0.01} smoothness={2} position={[0, 0.05, -0.17]} rotation={[0.12, 0, 0]}>
+              <meshStandardMaterial color={color} roughness={0.6} />
+            </RoundedBox>
+          </group>
+        ) : (
+          <group>
+            <mesh position={[0, 0.03, 0.012]}>
+              <sphereGeometry args={[0.152, 24, 14, 0, Math.PI * 2, 0, Math.PI * 0.5]} />
+              <meshStandardMaterial color={at.colorPelo} roughness={0.9} />
+            </mesh>
+            {at.pelo === 2 && (
+              <mesh position={[0, -0.05, 0.12]} scale={[1, 1.5, 0.7]}>
+                <sphereGeometry args={[0.09, 16, 14]} />
+                <meshStandardMaterial color={at.colorPelo} roughness={0.9} />
+              </mesh>
+            )}
+          </group>
+        )}
       </group>
     </group>
   );

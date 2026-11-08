@@ -1,10 +1,11 @@
 "use client";
 
 import { useRef } from "react";
+import Avatar from "./Avatar";
 import { Canvas, useFrame } from "@react-three/fiber";
 import type { Group } from "three";
 import Piloto from "./Piloto";
-import { CASCOS, COLORES, PIELES, type Perfil } from "@/lib/perfil";
+import { AVATARES, CASCOS, COLORES, MOTOS, PIELES, type Perfil } from "@/lib/perfil";
 import { NIVELES, type Nivel } from "@/lib/niveles";
 
 type Props = {
@@ -16,22 +17,28 @@ type Props = {
 };
 
 function Vitrina({ perfil }: { perfil: Perfil }) {
-  const giro = useRef<Group>(null);
-  useFrame((_, delta) => {
-    if (giro.current) giro.current.rotation.y += delta * 0.5;
+  const moto = useRef<Group>(null);
+  const quieto = useRef(0);
+  useFrame(({ clock }) => {
+    // el mototaxi gira despacio de un lado a otro y el personaje queda siempre a la vista
+    if (moto.current) moto.current.rotation.y = -2.45 + Math.sin(clock.elapsedTime * 0.45) * 0.4;
   });
 
   return (
     <>
-      <group ref={giro} position={[0, 0.08, 0]}>
-        <Piloto perfil={perfil} />
+      <group ref={moto} position={[-0.9, 0.08, 0.3]}>
+        <Piloto perfil={perfil} vacio />
+      </group>
+      {/* el personaje, de pie junto al mototaxi */}
+      <group position={[1.7, 0.08, 0.6]} rotation={[0, 2.75, 0]} scale={1.12}>
+        <Avatar perfil={perfil} marcha={quieto} casco={perfil.casco} />
       </group>
       <mesh position={[0, 0.02, 0]}>
-        <cylinderGeometry args={[2.3, 2.4, 0.08, 64]} />
+        <cylinderGeometry args={[3.3, 3.4, 0.08, 64]} />
         <meshStandardMaterial color="#141a33" metalness={0.6} roughness={0.35} />
       </mesh>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.07, 0]}>
-        <ringGeometry args={[2.1, 2.2, 96]} />
+        <ringGeometry args={[3.1, 3.2, 96]} />
         <meshStandardMaterial color="#000000" emissive={perfil.color} emissiveIntensity={2.5} />
       </mesh>
     </>
@@ -50,7 +57,7 @@ export default function Menu({ perfil, alCambiar, alJugar, nivel, alNivel }: Pro
           e.preventDefault();
           if (valido) alJugar();
         }}
-        className="relative z-10 flex flex-col justify-center gap-9 px-7 py-10 md:px-14"
+        className="relative z-10 flex flex-col justify-center gap-7 px-7 py-10 md:px-14"
       >
         <header className="anim-subir">
           <p className="font-mono text-[11px] uppercase tracking-[0.32em] text-menta">
@@ -75,8 +82,52 @@ export default function Menu({ perfil, alCambiar, alJugar, nivel, alNivel }: Pro
           />
         </label>
 
+        <div className="anim-subir" style={{ animationDelay: "120ms" }}>
+          <p className={ETIQUETA}>Personaje</p>
+          <div className="mt-3 grid grid-cols-3 gap-2">
+            {AVATARES.map((a, i) => (
+              <button
+                key={a.nombre}
+                type="button"
+                onClick={() => alCambiar({ ...perfil, avatar: i })}
+                aria-pressed={(perfil.avatar ?? 0) === i}
+                className={`rounded-xl border px-3 py-2.5 text-left transition ${
+                  (perfil.avatar ?? 0) === i
+                    ? "border-acento bg-acento/15 text-white"
+                    : "border-white/10 text-tenue hover:border-white/30 hover:text-white"
+                }`}
+              >
+                <span className="block text-sm font-semibold">{a.nombre}</span>
+                <span className="block text-[11px] opacity-70">{a.detalle}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="anim-subir" style={{ animationDelay: "140ms" }}>
+          <p className={ETIQUETA}>Mototaxi</p>
+          <div className="mt-3 grid grid-cols-3 gap-2">
+            {MOTOS.map((m, i) => (
+              <button
+                key={m.nombre}
+                type="button"
+                onClick={() => alCambiar({ ...perfil, moto: i })}
+                aria-pressed={(perfil.moto ?? 0) === i}
+                className={`rounded-xl border px-3 py-2.5 text-left transition ${
+                  (perfil.moto ?? 0) === i
+                    ? "border-acento bg-acento/15 text-white"
+                    : "border-white/10 text-tenue hover:border-white/30 hover:text-white"
+                }`}
+              >
+                <span className="block text-sm font-semibold">{m.nombre}</span>
+                <span className="block text-[11px] opacity-70">{m.detalle}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
         <div className="anim-subir" style={{ animationDelay: "160ms" }}>
-          <p className={ETIQUETA}>Color del kart</p>
+          <p className={ETIQUETA}>Color del mototaxi</p>
           <div className="mt-3 flex gap-3">
             {COLORES.map((c) => {
               const activo = perfil.color === c.valor;
@@ -96,6 +147,27 @@ export default function Menu({ perfil, alCambiar, alJugar, nivel, alNivel }: Pro
                 />
               );
             })}
+            <label
+              title="Elegir otro color"
+              className={`relative h-9 w-9 cursor-pointer rounded-full transition ${
+                COLORES.some((c) => c.valor === perfil.color)
+                  ? "opacity-80 hover:opacity-100"
+                  : "scale-110 ring-2 ring-white ring-offset-2 ring-offset-[#0c1229]"
+              }`}
+              style={{
+                background: COLORES.some((c) => c.valor === perfil.color)
+                  ? "conic-gradient(red, yellow, lime, aqua, blue, magenta, red)"
+                  : perfil.color,
+              }}
+            >
+              <input
+                type="color"
+                aria-label="Elegir otro color"
+                value={perfil.color}
+                onChange={(e) => alCambiar({ ...perfil, color: e.target.value })}
+                className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+              />
+            </label>
           </div>
         </div>
 
@@ -173,10 +245,11 @@ export default function Menu({ perfil, alCambiar, alJugar, nivel, alNivel }: Pro
         </button>
 
         <p className="font-mono text-[11px] text-tenue/80">A · D o ← → para cambiar de carril</p>
+        <p className="text-[10px] text-tenue/50">Modelo 3D del mototaxi generado con Meshy (CC BY 4.0).</p>
       </form>
 
       <section className="relative min-h-[46vh] md:min-h-screen">
-        <Canvas camera={{ position: [4.4, 2.8, 5.6], fov: 38 }} dpr={[1, 2]}>
+        <Canvas camera={{ position: [5.4, 3.3, 8.6], fov: 38 }} dpr={[1, 2]}>
           <hemisphereLight args={["#9a7bff", "#1a1030", 1.1]} />
           <directionalLight position={[3, 5, 2]} intensity={2.2} color="#ffb27a" />
           <directionalLight position={[-4, 3, -3]} intensity={1.4} color="#6d7bff" />
