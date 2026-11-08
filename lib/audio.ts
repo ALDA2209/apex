@@ -255,7 +255,7 @@ export function actualizarSonido() {
   if (!ctx) return;
   const t = ctx.currentTime;
   const manejando = estado.activo && !estado.apie && estado.fase === "libre";
-  const parado = estado.activo && !estado.apie && estado.fase !== "libre" && estado.fase !== "meta";
+  const parado = estado.activo && !estado.apie && estado.fase !== "libre" && estado.fase !== "meta" && estado.fase !== "arrestado";
   const aPie = estado.apie;
   const kmh = Math.max(0, estado.kmh || 0);
   const r = manejando ? Math.min(1.4, kmh / 45 + (estado.turbo > 1.2 ? 0.15 : 0)) : 0;
@@ -391,6 +391,29 @@ export function whoosh() {
     g.connect(gEfectos);
     f.start(t);
     f.stop(t + 0.75);
+  } catch {}
+}
+
+/* Sirena de patrulla (dos tonos que suben y bajan) para la pantalla de arresto. */
+export function sirena(segundos = 3) {
+  try {
+    if (!ctx) return;
+    const t = ctx.currentTime;
+    const o = ctx.createOscillator();
+    o.type = "sawtooth";
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(0.05, t + 0.15);
+    g.gain.setValueAtTime(0.05, t + segundos - 0.4);
+    g.gain.linearRampToValueAtTime(0, t + segundos);
+    for (let i = 0; i < segundos * 2; i++) {
+      o.frequency.setValueAtTime(i % 2 === 0 ? 650 : 880, t + i * 0.5);
+      o.frequency.linearRampToValueAtTime(i % 2 === 0 ? 880 : 650, t + i * 0.5 + 0.45);
+    }
+    o.connect(g);
+    g.connect(gEfectos);
+    o.start(t);
+    o.stop(t + segundos + 0.05);
   } catch {}
 }
 

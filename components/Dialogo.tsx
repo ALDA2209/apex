@@ -3,8 +3,8 @@
 import { callar, hablar } from "@/lib/audio";
 import { CONSULTAS } from "@/lib/abogado";
 import { useCallback, useEffect, useState } from "react";
-import { concluirPuente, decidir, estado, useFase, usePuente } from "@/lib/estado";
-import { PUENTES, type Puente as DatosPuente } from "@/lib/puentes";
+import { concluirPuente, decidir, estado, evaluarArresto, LIMITE_FALTAS, puntosFaltas, useFase, usePuente } from "@/lib/estado";
+import { PUENTES, puntosDe, type Pregunta as DatosPregunta, type Puente as DatosPuente } from "@/lib/puentes";
 import { TIEMPO_POR_NIVEL } from "@/lib/niveles";
 
 const JET = "var(--font-jetbrains)";
@@ -25,19 +25,33 @@ function Cambio({ etiqueta, valor, bueno }: { etiqueta: string; valor: string; b
   );
 }
 
-function Conversacion({ p, indice }: { p: DatosPuente; indice: number }) {
+function Pregunta({
+  p,
+  q,
+  indice,
+  k,
+  total,
+  alSeguir,
+}: {
+  p: DatosPuente;
+  q: DatosPregunta;
+  indice: number;
+  k: number;
+  total: number;
+  alSeguir: () => void;
+}) {
   const trato = "joven";
   const [sel, setSel] = useState<number | null>(null);
-  const op = sel === null ? null : p.opciones[sel];
+  const op = sel === null ? null : q.opciones[sel];
 
   const elegir = useCallback(
     (i: number) => {
       if (sel !== null) return;
-      const o = p.opciones[i];
+      const o = q.opciones[i];
       setSel(i);
-      decidir(indice, i, o.correcta, o.riesgo, o.soles);
+      decidir(indice, i, o.correcta, o.riesgo, o.soles, k, puntosDe(o));
     },
-    [sel, p, indice],
+    [sel, q, indice, k],
   );
 
   const limite = TIEMPO_POR_NIVEL[estado.nivel];
@@ -54,7 +68,7 @@ function Conversacion({ p, indice }: { p: DatosPuente; indice: number }) {
         // se acabó el tiempo: titubeaste, y eso se nota (la respuesta incorrecta menos grave)
         let k = 0;
         let menor = Infinity;
-        p.opciones.forEach((o, i) => {
+        q.opciones.forEach((o, i) => {
           if (!o.correcta && o.riesgo < menor) {
             menor = o.riesgo;
             k = i;
@@ -64,23 +78,25 @@ function Conversacion({ p, indice }: { p: DatosPuente; indice: number }) {
       }
     }, 100);
     return () => clearInterval(id);
-  }, [limite, sel, p, elegir]);
+  }, [limite, sel, q, elegir]);
 
-  const textoVoz = op ? op.oficial : p.pregunta(trato);
+  const puntos = puntosFaltas();
+  const arrestado = op !== null && puntos >= LIMITE_FALTAS;
+  const textoVoz = op ? op.oficial + (arrestado ? " Queda detenido." : "") : q.pregunta(trato);
   useEffect(() => {
     hablar(textoVoz, "oficial");
     return () => callar();
   }, [textoVoz]);
 
   const seguir = useCallback(() => {
-    if (sel !== null) concluirPuente();
-  }, [sel]);
+    if (sel !== null) alSeguir();
+  }, [sel, alSeguir]);
 
   useEffect(() => {
     const tecla = (e: KeyboardEvent) => {
       if (sel === null) {
         const i = Number(e.key) - 1;
-        if (i >= 0 && i < p.opciones.length) elegir(i);
+        if (i >= 0 && i < q.opciones.length) elegir(i);
       } else if (e.code === "Space" || e.code === "Enter") {
         e.preventDefault();
         seguir();
@@ -88,7 +104,7 @@ function Conversacion({ p, indice }: { p: DatosPuente; indice: number }) {
     };
     window.addEventListener("keydown", tecla);
     return () => window.removeEventListener("keydown", tecla);
-  }, [sel, p, elegir, seguir]);
+  }, [sel, q, elegir, seguir]);
 
   return (
     <div className="absolute inset-x-0 bottom-0 z-20 flex justify-center px-4 pb-6 [@media(max-height:480px)]:px-2 [@media(max-height:480px)]:pb-1">
@@ -108,6 +124,20 @@ function Conversacion({ p, indice }: { p: DatosPuente; indice: number }) {
             <p className="text-[10px] uppercase tracking-[0.25em]" style={{ color: "#5eead4" }}>
               {p.titulo} · {p.subtitulo}
             </p>
+          </div>
+          <div className="ml-auto flex flex-wrap items-center justify-end gap-2 [@media(max-height:480px)]:mr-[4.5rem]" style={{ fontFamily: JET }}>
+            {q.origen === "ia" && (
+              <span
+                className="rounded-full px-2.5 py-1 text-[9px] uppercase tracking-[0.18em]"
+                style={{ background: "rgba(167,139,250,0.16)", color: "#c4b5fd" }}
+                title="Pregunta creada por Gemini para esta partida"
+              >
+                ✦ Creada con IA
+              </span>
+            )}
+            <span className="rounded-full border border-white/15 px-2.5 py-1 text-[9px] uppercase tracking-[0.18em] text-white/70">
+              Pregunta {k + 1} de {total}
+            </span>
           </div>
         </div>
 
@@ -129,12 +159,12 @@ function Conversacion({ p, indice }: { p: DatosPuente; indice: number }) {
           </div>
         )}
         <p className="text-lg leading-relaxed text-white sm:text-xl [@media(max-height:480px)]:text-sm [@media(max-height:480px)]:leading-snug" style={{ fontFamily: BRIC }}>
-          {op ? op.oficial : p.pregunta(trato)}
+          {op ? op.oficial : q.pregunta(trato)}
         </p>
 
         {op === null ? (
           <div className="mt-5 flex flex-col gap-2 [@media(max-height:480px)]:mt-2 [@media(max-height:480px)]:gap-1">
-            {p.opciones.map((o, i) => (
+            {q.opciones.map((o, i) => (
               <button
                 key={i}
                 type="button"
@@ -174,6 +204,32 @@ function Conversacion({ p, indice }: { p: DatosPuente; indice: number }) {
                 bueno={op.soles >= 0}
               />
             </div>
+            {!op.correcta && (
+              <div
+                className="mt-3 rounded-xl border px-4 py-2.5 [@media(max-height:480px)]:mt-2 [@media(max-height:480px)]:py-1.5"
+                style={{
+                  borderColor: "rgba(244,63,94,0.6)",
+                  background: arrestado ? "rgba(127,29,29,0.55)" : "rgba(244,63,94,0.1)",
+                  fontFamily: JET,
+                }}
+              >
+                <p className="text-[11px] uppercase tracking-[0.22em]" style={{ color: "#fb7185" }}>
+                  {arrestado
+                    ? "Quedas arrestado · pierdes la partida"
+                    : puntos === LIMITE_FALTAS - 1
+                      ? "¡Última advertencia! Una infracción más y te arrestan"
+                      : "Infracción registrada"}{" "}
+                  · {puntos}/{LIMITE_FALTAS}
+                </p>
+                <p className="mt-1 text-xs text-white/75" style={{ fontFamily: BRIC }}>
+                  {puntosDe(op) === 2
+                    ? "Esto es un delito y cuenta doble."
+                    : arrestado
+                      ? "Sigues respondiendo mal ante la autoridad."
+                      : "Si sigues respondiendo mal ante la autoridad, serás arrestado."}
+                </p>
+              </div>
+            )}
             <div
               className="mt-4 rounded-xl border px-4 py-3 [@media(max-height:480px)]:mt-2 [@media(max-height:480px)]:px-3 [@media(max-height:480px)]:py-1.5"
               style={{ borderColor: "rgba(94,234,212,0.3)", background: "rgba(94,234,212,0.06)" }}
@@ -194,13 +250,25 @@ function Conversacion({ p, indice }: { p: DatosPuente; indice: number }) {
               className="mt-4 rounded-full px-6 py-3 text-[11px] uppercase tracking-[0.25em] transition hover:brightness-110 [@media(max-height:480px)]:mt-2 [@media(max-height:480px)]:py-1.5"
               style={{ background: "#ff7a3d", color: "#1a0d05", fontFamily: JET }}
             >
-              Volver al mototaxi · Espacio
+              {arrestado ? "Ver lo que pasó · Espacio" : k + 1 < total ? "Siguiente pregunta · Espacio" : "Volver al mototaxi · Espacio"}
             </button>
           </div>
         )}
       </div>
     </div>
   );
+}
+
+function Conversacion({ p, indice }: { p: DatosPuente; indice: number }) {
+  const [k, setK] = useState(0);
+  const total = p.extra ? 2 : 1;
+  const q: DatosPregunta = k === 0 || !p.extra ? p : p.extra;
+  const alSeguir = useCallback(() => {
+    if (evaluarArresto()) return;
+    if (k + 1 < total) setK(k + 1);
+    else concluirPuente();
+  }, [k, total]);
+  return <Pregunta key={k} p={p} q={q} indice={indice} k={k} total={total} alSeguir={alSeguir} />;
 }
 
 export default function Dialogo() {

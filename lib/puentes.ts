@@ -5,6 +5,16 @@ export type Opcion = {
   soles: number;
   oficial: string;
   leccion: string;
+  /** Delito (ofrecer coima, comprobantes falsos…): cuenta doble en las infracciones. */
+  delito?: boolean;
+};
+
+/** Una pregunta de la autoridad con sus alternativas. */
+export type Pregunta = {
+  pregunta: (trato: string) => string;
+  opciones: Opcion[];
+  /** "ia" = la creó Gemini para esta partida; "respaldo" = salió del banco del juego. */
+  origen?: "ia" | "respaldo";
 };
 
 export type Puente = {
@@ -17,6 +27,9 @@ export type Puente = {
   banda: string;
   pregunta: (trato: string) => string;
   opciones: Opcion[];
+  origen?: "ia" | "respaldo";
+  /** Segunda pregunta del interrogatorio en este puente. */
+  extra?: Pregunta;
   /** Nivel 3: la pregunta depende de lo que hiciste antes (el fiscal "recuerda"). */
   resolver?: (ctx: { sinComprobante: number }) => Pick<Puente, "pregunta" | "opciones">;
 };
@@ -149,3 +162,14 @@ export const PUENTES_N1: Puente[] = [
 
 /* Lista de trabajo: se llena con el nivel elegido (ver niveles.ts). */
 export const PUENTES: Puente[] = [...PUENTES_N1];
+
+/** La pregunta k (0 = primera, 1 = segunda) del puente i. */
+export function preguntaDe(i: number, k: number): Pregunta | undefined {
+  const p = PUENTES[i];
+  if (!p) return undefined;
+  return k === 0 ? p : p.extra;
+}
+
+export const esDelito = (o: Opcion) => !o.correcta && (o.delito ?? o.riesgo >= 35);
+/** Puntos de infracción de una respuesta: 0 si es correcta, 1 si es un error, 2 si es un delito. */
+export const puntosDe = (o: Opcion) => (o.correcta ? 0 : esDelito(o) ? 2 : 1);

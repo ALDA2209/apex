@@ -1,4 +1,7 @@
-import { PUENTES, PUENTES_N1, type Opcion, type Puente } from "@/lib/puentes";
+import { PUENTES, PUENTES_N1, type Opcion, type Pregunta, type Puente } from "@/lib/puentes";
+import { BANCO_EXTRA } from "@/lib/banco";
+import { hayIA, pedirPreguntas, type PreguntaIA } from "@/lib/ia";
+import { estado } from "@/lib/estado";
 
 export type Nivel = 1 | 2 | 3;
 
@@ -270,14 +273,121 @@ function mezclar<T>(a: T[]): T[] {
   return r;
 }
 
-/* Arma los 3 puentes del nivel y mezcla el orden de las opciones (la correcta ya no siempre es la 1). */
+/* Menos opciones en el nivel 1: quita errores al azar, pero deja siempre la correcta. */
+function ajustarOpciones(ops: Opcion[], cuantas: number): Opcion[] {
+  if (ops.length <= cuantas) return ops;
+  const mal = mezclar(ops.filter((o) => !o.correcta)).slice(0, cuantas - 1);
+  return [ops.find((o) => o.correcta)!, ...mal];
+}
+
+/* Todas las preguntas de respaldo de un puente, con su dificultad. */
+function bancoDe(i: number): (Pregunta & { dif: 1 | 2 | 3 })[] {
+  const base = PUENTES_N1[i];
+  const n3 = N3[i];
+  const n3q: Pregunta = n3.resolver
+    ? n3.resolver({ sinComprobante: 0 })
+    : { pregunta: n3.pregunta, opciones: n3.opciones };
+  return [
+    { dif: 1, pregunta: base.pregunta, opciones: base.opciones },
+    { dif: 2, pregunta: N2[i].pregunta, opciones: N2[i].opciones },
+    { dif: 3, ...n3q },
+    ...BANCO_EXTRA[i],
+  ];
+}
+
+let generacion = 0;
+
+/* Arma los 3 puentes del nivel con 2 preguntas cada uno, sorteadas del banco de respaldo
+   (la correcta ya no siempre es la 1). Enseguida se piden a la IA unas nuevas. */
 export function prepararNivel(n: Nivel) {
+  generacion += 1;
+  const nOp = n === 1 ? 3 : 4;
   const nuevos: Puente[] = PUENTES_N1.map((base, i) => {
-    const extra = n === 1 ? null : n === 2 ? N2[i] : N3[i];
-    const p: Puente = extra ? { ...base, ...extra } : { ...base };
-    return { ...p, opciones: mezclar(p.opciones) };
+    const cerca = bancoDe(i).filter((q) => Math.abs(q.dif - n) <= 1);
+    const elegidas = mezclar(cerca.length >= 2 ? cerca : bancoDe(i));
+    let q1: Pregunta = elegidas[0];
+    const q2: Pregunta = elegidas[1];
+    let resolver: Puente["resolver"];
+    if (n === 3 && i === 2) {
+      // el fiscal "recuerda" tus ventas: la primera pregunta depende de lo que hiciste
+      q1 = { pregunta: N3[i].pregunta, opciones: N3[i].opciones };
+      resolver = N3[i].resolver;
+    }
+    return {
+      ...base,
+      pregunta: q1.pregunta,
+      opciones: mezclar(ajustarOpciones(q1.opciones, nOp)),
+      origen: "respaldo",
+      resolver,
+      extra: {
+        pregunta: q2.pregunta,
+        opciones: mezclar(ajustarOpciones(q2.opciones, nOp)),
+        origen: "respaldo",
+      },
+    };
   });
   PUENTES.splice(0, PUENTES.length, ...nuevos);
+  void cargarPreguntasIA(n, generacion);
+}
+
+const CLAVE_VISTAS = "apex-preguntas-vistas";
+const leerVistas = (): string[] => {
+  try {
+    const j = JSON.parse(localStorage.getItem(CLAVE_VISTAS) || "[]");
+    return Array.isArray(j) ? j.filter((x) => typeof x === "string").slice(-12) : [];
+  } catch {
+    return [];
+  }
+};
+
+/* Pide a Gemini las preguntas de esta partida. Si llegan a tiempo, reemplazan las de respaldo
+   (solo en los puentes que todavía no has pasado). Si falla, el juego sigue con el banco. */
+async function cargarPreguntasIA(n: Nivel, gen: number) {
+  if (!hayIA()) return;
+  const lista = await pedirPreguntas(n, leerVistas());
+  if (!lista || gen !== generacion) return;
+  const SOLES = [60, 70, 80];
+  const RIESGO = [0, 15, 25, 40];
+  const SANCION = [0, -50, -85, -120];
+  const convertir = (q: PreguntaIA, i: number): Pregunta => ({
+    origen: "ia",
+    pregunta: () => q.pregunta,
+    opciones: mezclar(
+      q.opciones.map((o): Opcion => {
+        const g = Math.max(0, Math.min(3, Math.round(o.gravedad)));
+        return o.correcta
+          ? { texto: o.texto, correcta: true, riesgo: -10, soles: SOLES[i] ?? 60, oficial: o.oficial, leccion: o.leccion + NOTA }
+          : {
+              texto: o.texto,
+              correcta: false,
+              riesgo: RIESGO[Math.max(1, g)],
+              soles: SANCION[Math.max(1, g)],
+              oficial: o.oficial,
+              leccion: o.leccion,
+              delito: g >= 3,
+            };
+      }),
+    ),
+  });
+  for (const q of lista) {
+    const p = PUENTES[q.puente];
+    if (!p) continue;
+    const yaEnCurso = estado.puente > q.puente || (estado.puente === q.puente && estado.fase !== "libre");
+    if (yaEnCurso) continue;
+    const c = convertir(q, q.puente);
+    if (q.k === 0) {
+      if (p.resolver) continue; // la pregunta que "recuerda" tus ventas se queda
+      p.pregunta = c.pregunta;
+      p.opciones = c.opciones;
+      p.origen = "ia";
+    } else {
+      p.extra = c;
+    }
+  }
+  try {
+    const nuevas = lista.map((q) => q.pregunta.slice(0, 160));
+    localStorage.setItem(CLAVE_VISTAS, JSON.stringify([...leerVistas(), ...nuevas].slice(-18)));
+  } catch {}
 }
 
 /* Antes de llegar al puente: si la pregunta depende de lo que hiciste, se arma ahora. */

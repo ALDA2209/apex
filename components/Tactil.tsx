@@ -146,7 +146,7 @@ export default function Tactil() {
   }, []);
 
   if (!tactil) return null;
-  if (fase === "dialogo" || fase === "parada" || fase === "meta" || dentro) return null;
+  if (fase === "dialogo" || fase === "parada" || fase === "meta" || fase === "arrestado" || dentro) return null;
 
   const conduciendo = activo && !apie && fase === "libre";
   const caminando = apie;

@@ -37,7 +37,7 @@ export default function Velocimetro() {
   const tramo = tramoEn(d);
   const pasado = kmh > tramo.limite + TOLERANCIA;
   const color = pasado ? "#f43f5e" : "#5eead4";
-  const oculto = apie || fase === "meta" || fase === "servicio";
+  const oculto = apie || fase === "meta" || fase === "servicio" || fase === "arrestado";
 
   return (
     <>

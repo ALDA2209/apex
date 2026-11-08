@@ -14,6 +14,7 @@ import Orbita from "@/components/Orbita";
 import Tactil, { PantallaCompleta } from "@/components/Tactil";
 import Ajustes, { Sonido } from "@/components/Sonido";
 import { prepararNivel, type Nivel } from "@/lib/niveles";
+import { despertarIA } from "@/lib/ia";
 import { estado, prepararPartida, salirDeTienda, useDentro, useObjetivo, type Genero } from "@/lib/estado";
 import { PERFIL_INICIAL, type Perfil } from "@/lib/perfil";
 
@@ -80,6 +81,11 @@ export default function Juego() {
   useEffect(() => {
     if (fase === "tienda" && objetivo === "listo") setFase("carrera");
   }, [fase, objetivo]);
+
+  /* El servidor de IA se duerme si nadie lo usa: lo despertamos apenas se abre el juego. */
+  useEffect(() => {
+    despertarIA();
+  }, []);
 
   /* Alto real de la pantalla: en el celular, al entrar o salir de pantalla completa,
      el navegador tarda en avisar el tamaño nuevo y los botones quedaban fuera de vista. */

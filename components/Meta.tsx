@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { hayIA, pedirTutor } from "@/lib/ia";
 import { estado, useRiesgo, useSoles, useVentas } from "@/lib/estado";
-import { PUENTES } from "@/lib/puentes";
+import { PUENTES, preguntaDe } from "@/lib/puentes";
 import { callar, hablar } from "@/lib/audio";
 import { ABOGADO, CONSULTAS, COSTO_CONSULTA } from "@/lib/abogado";
 
@@ -42,9 +42,9 @@ export default function Meta({ alSalir }: { alSalir: () => void }) {
       nivel: estado.nivel,
       decisiones: estado.decisiones.map((d) => ({
         titulo: PUENTES[d.puente]?.titulo + " · " + PUENTES[d.puente]?.subtitulo,
-        eligio: PUENTES[d.puente]?.opciones[d.opcion]?.texto ?? "",
+        eligio: preguntaDe(d.puente, d.k)?.opciones[d.opcion]?.texto ?? "",
         correcta: d.correcta,
-        leccion: PUENTES[d.puente]?.opciones[d.opcion]?.leccion ?? "",
+        leccion: preguntaDe(d.puente, d.k)?.opciones[d.opcion]?.leccion ?? "",
       })),
       ventas: estado.entregas.map((v) => ({ negocio: v.negocio, comprobante: v.comprobante, acierto: v.acierto })),
       consultas: estado.consultas.length,
@@ -107,29 +107,35 @@ export default function Meta({ alSalir }: { alSalir: () => void }) {
         </p>
         <div className="mt-2 flex flex-col gap-2">
           {PUENTES.map((p, i) => {
-            const d = decisiones.find((x) => x.puente === i);
+            const ds = decisiones.filter((x) => x.puente === i).sort((x, y) => x.k - y.k);
+            const todas = ds.length > 0 && ds.every((x) => x.correcta);
+            const color = ds.length === 0 ? "#94a3b8" : todas ? "#5eead4" : "#f43f5e";
             return (
               <div
                 key={i}
                 className="rounded-xl border px-4 py-3"
                 style={{
-                  borderColor: !d ? "rgba(255,255,255,0.1)" : d.correcta ? "rgba(94,234,212,0.4)" : "rgba(244,63,94,0.4)",
+                  borderColor: ds.length === 0 ? "rgba(255,255,255,0.1)" : todas ? "rgba(94,234,212,0.4)" : "rgba(244,63,94,0.4)",
                   background: "rgba(255,255,255,0.03)",
                 }}
               >
-                <p className="text-[10px] uppercase tracking-[0.25em]" style={{ fontFamily: JET, color: !d ? "#94a3b8" : d.correcta ? "#5eead4" : "#f43f5e" }}>
-                  {p.titulo} · {p.subtitulo} · {!d ? "sin decisión" : d.correcta ? "Bien" : "A mejorar"}
+                <p className="text-[10px] uppercase tracking-[0.25em]" style={{ fontFamily: JET, color }}>
+                  {p.titulo} · {p.subtitulo} · {ds.length === 0 ? "sin decisión" : todas ? "Bien" : "A mejorar"}
                 </p>
-                {d && (
-                  <>
-                    <p className="mt-1 text-base text-white" style={{ fontFamily: BRIC }}>
-                      Elegiste: {p.opciones[d.opcion].texto}
-                    </p>
-                    <p className="mt-1 text-sm leading-snug text-white/70" style={{ fontFamily: BRIC }}>
-                      {p.opciones[d.opcion].leccion}
-                    </p>
-                  </>
-                )}
+                {ds.map((d) => {
+                  const o = preguntaDe(i, d.k)?.opciones[d.opcion];
+                  if (!o) return null;
+                  return (
+                    <div key={d.k} className="mt-2">
+                      <p className="text-base text-white" style={{ fontFamily: BRIC }}>
+                        <span style={{ color: d.correcta ? "#5eead4" : "#f43f5e" }}>{d.correcta ? "✓" : "✗"}</span> Elegiste: {o.texto}
+                      </p>
+                      <p className="mt-1 text-sm leading-snug text-white/70" style={{ fontFamily: BRIC }}>
+                        {o.leccion}
+                      </p>
+                    </div>
+                  );
+                })}
               </div>
             );
           })}
@@ -169,6 +175,12 @@ export default function Meta({ alSalir }: { alSalir: () => void }) {
             </button>
           </div>
         </div>
+
+        {estado.faltas.length > 0 && (
+          <p className="mt-4 text-sm text-white/80" style={{ fontFamily: BRIC }}>
+            Infracciones ante la autoridad: {estado.faltas.reduce((t, x) => t + x.peso, 0)} de 3 puntos. ¡Estuviste cerca del arresto!
+          </p>
+        )}
 
         {estado.infracciones.length > 0 && (
           <p className="mt-4 text-sm text-white/80" style={{ fontFamily: BRIC }}>

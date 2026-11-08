@@ -4,8 +4,9 @@ import Dialogo from "@/components/Dialogo";
 import Parada from "@/components/Parada";
 import Servicio from "@/components/Servicio";
 import Meta from "@/components/Meta";
+import Arresto from "@/components/Arresto";
 import Ruta from "@/components/Ruta";
-import { estado, useBotiquines, useDentro, useFase, useIntegridad, useKits, useRiesgo, useSalud } from "@/lib/estado";
+import { estado, LIMITE_FALTAS, useBotiquines, useDentro, useFaltas, useFase, useIntegridad, useKits, useRiesgo, useSalud } from "@/lib/estado";
 import Objetivo from "@/components/Objetivo";
 import Velocimetro from "@/components/Velocimetro";
 
@@ -29,6 +30,33 @@ function Riesgo() {
       </span>
       <span className="w-8 text-right text-xs font-semibold" style={{ color }}>
         {riesgo}%
+      </span>
+    </div>
+  );
+}
+
+/* Puntos de infracción: con 3 el policía te arresta. */
+function Infracciones() {
+  const faltas = useFaltas();
+  const grave = faltas >= LIMITE_FALTAS - 1 && faltas > 0;
+  return (
+    <div
+      className="absolute left-5 top-[14.2rem] z-10 flex items-center gap-2.5 rounded-full border bg-black/40 px-4 py-1.5 backdrop-blur [@media(max-height:480px)]:left-[14.8rem] [@media(max-height:480px)]:top-10 [@media(max-height:480px)]:px-3 [@media(max-height:480px)]:py-1 [@media(max-width:640px)_and_(orientation:portrait)]:left-2 [@media(max-width:640px)_and_(orientation:portrait)]:top-[14.4rem]"
+      style={{ fontFamily: "var(--font-jetbrains)", borderColor: grave ? "rgba(244,63,94,0.7)" : "rgba(255,255,255,0.1)" }}
+      title="Infracciones: con 3 puntos el policía te arresta"
+    >
+      <span className="text-[10px] uppercase tracking-[0.25em] text-white/60">Infracciones</span>
+      <span className="flex items-center gap-1.5">
+        {Array.from({ length: LIMITE_FALTAS }).map((_, i) => (
+          <span
+            key={i}
+            className="h-2.5 w-2.5 rounded-full"
+            style={{
+              background: i < faltas ? "#f43f5e" : "rgba(255,255,255,0.18)",
+              boxShadow: i < faltas ? "0 0 8px #f43f5e" : "none",
+            }}
+          />
+        ))}
       </span>
     </div>
   );
@@ -104,6 +132,7 @@ export default function Capa({ alSalir }: { alSalir: () => void }) {
     <>
       <Riesgo />
       <Estado />
+      <Infracciones />
       <Ruta />
       <Cansancio />
       <Velocimetro />
@@ -112,6 +141,7 @@ export default function Capa({ alSalir }: { alSalir: () => void }) {
       {fase === "parada" && <Parada />}
       {fase === "servicio" && dentro && <Servicio />}
       {fase === "meta" && <Meta alSalir={alSalir} />}
+      {fase === "arrestado" && <Arresto alSalir={alSalir} />}
     </>
   );
 }

@@ -1,6 +1,7 @@
 /* Servidor pequeño de Apex: guarda la clave de Gemini y responde solo dos cosas:
    /tutor  → el Dr. Paredes comenta tu partida
    /simple → explica una lección en palabras más fáciles
+   /preguntas → crea las preguntas de los puentes (distintas en cada partida)
    Sin dependencias. La clave va en la variable GEMINI_API_KEY (nunca en el código). */
 import http from "node:http";
 
@@ -10,8 +11,9 @@ const MODELOS = (process.env.GEMINI_MODEL || "gemini-3.8-flash,gemini-2.5-flash"
 const MODELO = MODELOS[0];
 const ORIGENES = (process.env.ALLOWED_ORIGIN || "*").split(",").map((s) => s.trim());
 const LIMITE_IP = 20; // consultas por IP cada 10 minutos
-const LIMITE_DIA = 400; // consultas por día en total
+const LIMITE_DIA = 900; // consultas por día en total
 const MAX_BYTES = 8000;
+const RUTAS = ["/tutor", "/simple", "/preguntas"];
 
 const porIp = new Map();
 let hoy = new Date().toDateString();
@@ -110,6 +112,259 @@ Riesgo fiscal final: ${Number(b.riesgo) || 0}%. Fotopapeletas: ${Number(b.infrac
 Escribe tu comentario final al jugador: reconoce lo que hizo bien, explica con sus propias decisiones el error más importante (si lo hay) y da una recomendación.`;
 }
 
+
+/* ---------- /preguntas: preguntas nuevas en cada partida ----------
+   Cada puente tiene una lista de situaciones y de ideas a evaluar. El servidor sortea dos de cada una
+   (así, aunque Gemini se repita, la pregunta cambia) y Gemini solo redacta. Solo se permiten estos hechos. */
+const PUENTES_IA = [
+  {
+    oficial: "Oficial Ramos",
+    control: "control de comprobantes en la carretera",
+    situaciones: [
+      "el mototaxista lleva cajas de gaseosas para vender en su bodega",
+      "lleva sacos de arroz y azúcar comprados a dos proveedores",
+      "transporta ropa para vender en la feria del domingo",
+      "lleva útiles escolares para una librería del barrio",
+      "transporta verduras compradas en el mercado mayorista",
+      "lleva repuestos de moto para un taller",
+      "transporta cajas de galletas y snacks para revender",
+      "lleva productos de limpieza para varios clientes",
+    ],
+    ideas: [
+      "la compra de mercadería se sustenta con el comprobante de pago del proveedor",
+      "para trasladar mercadería se usa la guía de remisión, que no reemplaza al comprobante de compra",
+      "quien vende debe entregar comprobante de pago aunque el cliente no lo pida",
+      "se debe llevar los documentos a la mano durante el traslado, no prometer traerlos después",
+      "un cuaderno de apuntes o un mensaje de chat no reemplaza un comprobante de pago",
+      "ofrecer dinero a un funcionario para evitar un control es un delito (cohecho)",
+      "boleta para consumidor final y factura cuando el cliente tiene RUC y la pide",
+    ],
+  },
+  {
+    oficial: "Agente Mendoza",
+    control: "control de aduanas",
+    situaciones: [
+      "el mototaxista lleva mercadería que entró desde otro país por la frontera",
+      "transporta electrodomésticos pequeños importados",
+      "lleva zapatillas y ropa deportiva importadas para vender",
+      "transporta accesorios de celular comprados a un importador",
+      "lleva juguetes importados para la campaña de fin de año",
+      "transporta herramientas importadas para una ferretería",
+      "lleva cajas de cosméticos importados para revender",
+    ],
+    ideas: [
+      "la mercadería que entra al país se declara ante la aduana y se pagan los tributos que correspondan",
+      "la declaración aduanera respalda que la mercadería ingresó legalmente",
+      "comprar mercadería sin documentos que acrediten su ingreso legal puede terminar en retención o incautación",
+      "la cantidad y el valor declarados deben coincidir con lo real; si hay diferencia, se reconoce y se regulariza",
+      "decir que son muestras o pocas cosas no exime de declarar lo que corresponde declarar",
+      "ante la duda, se consulta a la aduana antes de pasar, no después",
+      "eres responsable de lo que transportas: si no sabes qué es ni de quién, no lo lleves",
+    ],
+  },
+  {
+    oficial: "Fiscal Paredes",
+    control: "operativo conjunto de Fiscalía y SUNAT",
+    situaciones: [
+      "el emprendedor vende snacks y bebidas en una bodega",
+      "vende ropa por redes sociales y cobra con Yape",
+      "tiene un puesto de comida y a veces el cliente paga en efectivo",
+      "entrega pedidos a domicilio con su mototaxi",
+      "vende útiles y fotocopias en un kiosco",
+      "tiene una pequeña tienda de abarrotes con varios clientes al día",
+      "vende frutas y menestras en el mercado",
+    ],
+    ideas: [
+      "los comprobantes electrónicos se pueden consultar en el portal de SUNAT para verificar su validez",
+      "usar o emitir comprobantes falsos, o que no corresponden a una operación real, tiene consecuencias legales graves",
+      "se emite comprobante en cada venta, aunque el cliente no lo pida y aunque pague en efectivo o por celular",
+      "llevar un registro de ventas ayuda a explicar cada operación cuando se pide",
+      "si se omitió un comprobante, lo mejor es reconocerlo y regularizarlo, no ocultarlo",
+      "el comprobante se emite al momento de la venta, no a fin de mes",
+      "un logo o un sello no demuestran que un comprobante sea auténtico",
+    ],
+  },
+];
+
+const sortear = (a, n) => [...a].sort(() => Math.random() - 0.5).slice(0, n);
+
+const REGLAS_PREGUNTAS = `Eres guionista de un juego educativo peruano sobre cultura tributaria y aduanera para jóvenes y emprendedores de mypes.
+Escribes preguntas de decisión que hace una autoridad en un control de carretera, y las opciones de respuesta del jugador.
+REGLAS ESTRICTAS:
+- Usa SOLO la idea que se te indica para cada pregunta. No inventes leyes, artículos, montos, porcentajes, plazos ni nombres de normas.
+- No escribas cifras de dinero ni porcentajes. Evita números en general.
+- La pregunta la dice la autoridad, en primera persona, con lenguaje claro y natural (máx. 45 palabras). Debe plantear una situación concreta distinta cada vez.
+- Cada pregunta tiene exactamente UNA opción correcta. Las demás son errores que de verdad cometen las personas (creíbles, no absurdos).
+- "gravedad" de una opción incorrecta: 1 = error leve u omisión, 2 = error serio, 3 = delito (por ejemplo ofrecer dinero a un funcionario o usar comprobantes falsos). La correcta lleva gravedad 0.
+- "oficial": lo que responde la autoridad tras esa opción (máx. 25 palabras, firme y respetuoso, sin amenazas ni insultos).
+- "leccion": la regla correcta explicada en palabras simples (máx. 40 palabras), sin inventar nada.
+- Es un juego: no des asesoría legal real. Español peruano, sin emojis.`;
+
+const ESQUEMA_PREGUNTAS = {
+  type: "OBJECT",
+  properties: {
+    preguntas: {
+      type: "ARRAY",
+      items: {
+        type: "OBJECT",
+        properties: {
+          puente: { type: "INTEGER" },
+          pregunta: { type: "STRING" },
+          opciones: {
+            type: "ARRAY",
+            items: {
+              type: "OBJECT",
+              properties: {
+                texto: { type: "STRING" },
+                correcta: { type: "BOOLEAN" },
+                gravedad: { type: "INTEGER" },
+                oficial: { type: "STRING" },
+                leccion: { type: "STRING" },
+              },
+              required: ["texto", "correcta", "gravedad", "oficial", "leccion"],
+            },
+          },
+        },
+        required: ["puente", "pregunta", "opciones"],
+      },
+    },
+  },
+  required: ["preguntas"],
+};
+
+const PROHIBIDO = /art[ií]culo|\bart\.|\bUIT\b|%|\bS\/\s*\d|\d{3,}|ley\s+n[°º.]|decreto/i;
+
+function pedidoPreguntas(b) {
+  const nivel = [1, 2, 3].includes(Number(b.nivel)) ? Number(b.nivel) : 1;
+  const evitar = (Array.isArray(b.evitar) ? b.evitar : []).slice(0, 12).map((t) => limpio(t, 160)).filter(Boolean);
+  const nOp = nivel === 1 ? 3 : 4;
+  const plan = [];
+  const lineas = [];
+  PUENTES_IA.forEach((p, i) => {
+    const sit = sortear(p.situaciones, 2);
+    const ide = sortear(p.ideas, 2);
+    for (let k = 0; k < 2; k++) {
+      plan.push({ puente: i, k });
+      lineas.push(
+        `Pregunta ${plan.length} (puente ${i}, ${p.oficial}, ${p.control}): situación: ${sit[k]}. Idea que evalúa: ${ide[k]}.`,
+      );
+    }
+  });
+  const dificultad =
+    nivel === 1
+      ? "Nivel fácil: preguntas directas y opciones claramente distintas."
+      : nivel === 2
+        ? "Nivel medio: incluye un detalle de la situación y errores que parecen razonables."
+        : "Nivel difícil: opciones muy parecidas entre sí; el error es sutil y la diferencia está en un detalle.";
+  const estilos = [
+    "autoridad formal y serena",
+    "autoridad apurada porque hay cola de vehículos",
+    "autoridad amable pero firme",
+    "autoridad estricta y directa",
+    "autoridad que explica con calma",
+  ];
+  const errores = [
+    "errores por desconocimiento",
+    "errores por confiarse o ahorrarse tiempo",
+    "errores por costumbre del barrio",
+    "errores por creer que 'así nomás se puede'",
+  ];
+  const nonce = Math.random().toString(36).slice(2, 8);
+  const usuario = `[variación ${nonce}] Tono de las autoridades en esta partida: ${sortear(estilos, 1)[0]}. En las alternativas incorrectas predominan ${sortear(errores, 1)[0]}. Cambia siempre las palabras, los ejemplos y el orden en que aparecen las ideas.
+Crea ${plan.length} preguntas, en este orden, cada una con exactamente ${nOp} opciones (una sola correcta). ${dificultad}
+${lineas.join("\n")}
+${evitar.length ? "No repitas ni parafrasees estas preguntas ya vistas por el jugador:\n- " + evitar.join("\n- ") : ""}
+Devuelve el campo "puente" con el número de puente indicado en cada pregunta.`;
+  return { nivel, nOp, plan, usuario };
+}
+
+function validarPreguntas(j, plan, nOp) {
+  const lista = j?.preguntas;
+  if (!Array.isArray(lista) || lista.length < plan.length) throw new Error("faltan preguntas");
+  return plan.map((pl, n) => {
+    const q = lista[n];
+    const pregunta = limpio(q?.pregunta, 420);
+    if (pregunta.length < 20 || PROHIBIDO.test(pregunta)) throw new Error("pregunta inválida");
+    const ops = Array.isArray(q?.opciones) ? q.opciones : [];
+    if (ops.length !== nOp) throw new Error("opciones inválidas");
+    if (ops.filter((o) => o?.correcta === true).length !== 1) throw new Error("correctas inválidas");
+    const opciones = ops.map((o) => {
+      const texto = limpio(o.texto, 240);
+      const oficial = limpio(o.oficial, 240);
+      const leccion = limpio(o.leccion, 420);
+      if (texto.length < 4 || oficial.length < 4 || leccion.length < 15) throw new Error("opción corta");
+      if (PROHIBIDO.test(texto + " " + oficial + " " + leccion)) throw new Error("texto no permitido");
+      const correcta = o.correcta === true;
+      const gravedad = correcta ? 0 : Math.max(1, Math.min(3, Math.round(Number(o.gravedad)) || 1));
+      return { texto, correcta, gravedad, oficial, leccion };
+    });
+    return { puente: pl.puente, k: pl.k, pregunta, opciones };
+  });
+}
+
+async function crearPreguntas(b) {
+  const { nOp, plan, usuario } = pedidoPreguntas(b);
+  let ultimo;
+  for (let intento = 0; intento < 2; intento++) {
+    try {
+      const crudo = await geminiJson(REGLAS_PREGUNTAS, usuario);
+      return validarPreguntas(JSON.parse(crudo), plan, nOp);
+    } catch (e) {
+      ultimo = e;
+      console.log("preguntas, intento", intento + 1, String(e).slice(0, 120));
+    }
+  }
+  throw ultimo;
+}
+
+async function llamarJson(modelo, sistema, usuario) {
+  const ctl = new AbortController();
+  const t = setTimeout(() => ctl.abort(), 30000);
+  try {
+    const generationConfig = {
+      temperature: 1,
+      maxOutputTokens: 8000,
+      responseMimeType: "application/json",
+      responseSchema: ESQUEMA_PREGUNTAS,
+    };
+    if (modelo.startsWith("gemini-3")) generationConfig.thinkingConfig = { thinkingLevel: "low" };
+    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-goog-api-key": CLAVE },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: sistema }] },
+        contents: [{ role: "user", parts: [{ text: usuario }] }],
+        generationConfig,
+      }),
+      signal: ctl.signal,
+    });
+    if (!r.ok) throw new Error(`Gemini ${modelo} ${r.status}`);
+    const j = await r.json();
+    const texto = (j.candidates?.[0]?.content?.parts || [])
+      .filter((p) => !p.thought)
+      .map((p) => p.text || "")
+      .join("")
+      .trim();
+    if (!texto) throw new Error("vacío");
+    return texto;
+  } finally {
+    clearTimeout(t);
+  }
+}
+
+async function geminiJson(sistema, usuario) {
+  let ultimo;
+  for (const m of MODELOS) {
+    try {
+      return await llamarJson(m, sistema, usuario);
+    } catch (e) {
+      ultimo = e;
+      console.log("falló", String(e).slice(0, 120));
+    }
+  }
+  throw ultimo;
+}
+
 function responder(res, codigo, obj, origen) {
   const ok = ORIGENES.includes("*") || ORIGENES.includes(origen);
   res.writeHead(codigo, {
@@ -127,7 +382,7 @@ http
     const origen = req.headers.origin || "";
     if (req.method === "OPTIONS") return responder(res, 204, {}, origen);
     if (req.url === "/salud") return responder(res, 200, { ok: true, clave: !!CLAVE, modelo: MODELO }, origen);
-    if (req.method !== "POST" || !["/tutor", "/simple"].includes(req.url || "")) {
+    if (req.method !== "POST" || !RUTAS.includes(req.url || "")) {
       return responder(res, 404, { error: "no existe" }, origen);
     }
     if (!(ORIGENES.includes("*") || ORIGENES.includes(origen))) return responder(res, 403, { error: "origen" }, origen);
@@ -145,6 +400,10 @@ http
       if (grande) return responder(res, 413, { error: "grande" }, origen);
       try {
         const b = JSON.parse(cuerpo || "{}");
+        if (req.url === "/preguntas") {
+          const preguntas = await crearPreguntas(b);
+          return responder(res, 200, { preguntas }, origen);
+        }
         let texto;
         if (req.url === "/tutor") {
           texto = await gemini(REGLAS, armarTutor(b));

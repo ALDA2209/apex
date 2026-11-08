@@ -2,8 +2,13 @@ import { useSyncExternalStore } from "react";
 import { CANSANCIO_POR_NIVEL, type Nivel } from "@/lib/niveles";
 
 export type Genero = "el" | "ella";
-export type FasePuente = "libre" | "alto" | "dialogo" | "regreso" | "parada" | "servicio" | "meta";
-export type Decision = { puente: number; opcion: number; correcta: boolean };
+export type FasePuente = "libre" | "alto" | "dialogo" | "regreso" | "parada" | "servicio" | "meta" | "arrestado";
+export type Decision = { puente: number; k: number; opcion: number; correcta: boolean };
+/** Una infracción: respuesta incorrecta ante la autoridad. peso 1 = error, 2 = delito. */
+export type Falta = { puente: number; k: number; peso: number };
+
+/** Con estos puntos de infracción el policía te arresta y pierdes la partida. */
+export const LIMITE_FALTAS = 3;
 export type Objetivo = "" | "bodega" | "local" | "oficial" | "volver" | "listo";
 export type TipoLugar = "garaje" | "servicio" | "puente";
 export type Compra = { lugar: string; monto: number; conComprobante: boolean };
@@ -67,6 +72,7 @@ export const estado = {
   puente: 0,
   servicio: 0,
   decisiones: [] as Decision[],
+  faltas: [] as Falta[],
   compras: [] as Compra[],
   consultas: [] as string[],
   gastoAbogado: 0,
@@ -145,11 +151,25 @@ export function decidir(
   correcta: boolean,
   riesgo: number,
   soles: number,
+  k = 0,
+  peso = 0,
 ) {
-  estado.decisiones.push({ puente, opcion, correcta });
+  estado.decisiones.push({ puente, k, opcion, correcta });
+  if (!correcta && peso > 0) estado.faltas.push({ puente, k, peso });
   estado.riesgo = limitar(estado.riesgo + riesgo);
   estado.soles = Math.max(0, estado.soles + soles);
   avisar();
+}
+
+export const puntosFaltas = () => estado.faltas.reduce((t, f) => t + f.peso, 0);
+
+/* Después de cada respuesta: si ya juntaste 3 puntos de infracción, el policía te arresta. */
+export function evaluarArresto(): boolean {
+  if (puntosFaltas() < LIMITE_FALTAS) return false;
+  estado.velocidad = 0;
+  estado.fase = "arrestado";
+  avisar();
+  return true;
 }
 
 export function terminarPuente() {
@@ -479,6 +499,7 @@ export function reiniciarPartida() {
   estado.puente = 0;
   estado.servicio = 0;
   estado.decisiones = [];
+  estado.faltas = [];
   estado.compras = [];
   estado.consultas = [];
   estado.gastoAbogado = 0;
@@ -542,6 +563,10 @@ export function useRiesgo() {
 
 export function useFase() {
   return useSyncExternalStore(suscribir, () => estado.fase, () => "libre" as FasePuente);
+}
+
+export function useFaltas() {
+  return useSyncExternalStore(suscribir, () => puntosFaltas(), () => 0);
 }
 
 export function usePuente() {

@@ -41,3 +41,47 @@ export type DatosTutor = {
 
 export const pedirTutor = (d: DatosTutor) => pedir("/tutor", d);
 export const pedirSimple = (texto: string) => pedir("/simple", { texto }, 10000);
+
+/* ---------- Preguntas creadas por la IA para cada partida ---------- */
+export type PreguntaIA = {
+  puente: number;
+  k: number;
+  pregunta: string;
+  opciones: { texto: string; correcta: boolean; gravedad: number; oficial: string; leccion: string }[];
+};
+
+/** Despierta el servidor (en el plan gratis se duerme) para que responda rápido cuando se necesite. */
+export function despertarIA() {
+  if (!BASE) return;
+  fetch(BASE.replace(/\/$/, "") + "/salud").catch(() => {});
+}
+
+export async function pedirPreguntas(nivel: number, evitar: string[]): Promise<PreguntaIA[] | null> {
+  if (!BASE) return null;
+  const ctl = new AbortController();
+  const t = setTimeout(() => ctl.abort(), 45000);
+  try {
+    const r = await fetch(BASE.replace(/\/$/, "") + "/preguntas", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ nivel, evitar }),
+      signal: ctl.signal,
+    });
+    if (!r.ok) return null;
+    const j = (await r.json()) as { preguntas?: PreguntaIA[] };
+    const l = j.preguntas;
+    if (!Array.isArray(l) || l.length < 6) return null;
+    const ok = l.every(
+      (q) =>
+        typeof q?.pregunta === "string" &&
+        Array.isArray(q.opciones) &&
+        q.opciones.length >= 3 &&
+        q.opciones.filter((o) => o.correcta).length === 1,
+    );
+    return ok ? l : null;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(t);
+  }
+}

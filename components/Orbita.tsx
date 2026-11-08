@@ -10,7 +10,7 @@ export default function Orbita() {
     let y = 0;
     let id = -1;
 
-    const bloqueado = () => estado.dentro || estado.fase === "dialogo" || estado.fase === "parada";
+    const bloqueado = () => estado.dentro || estado.fase === "dialogo" || estado.fase === "parada" || estado.fase === "arrestado";
 
     const abajo = (e: PointerEvent) => {
       if (e.button !== 0 || bloqueado()) return;
