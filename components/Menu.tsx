@@ -1,10 +1,11 @@
 "use client";
 
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
+import type { MutableRefObject } from "react";
 import Avatar from "./Avatar";
-import { Canvas } from "@react-three/fiber";
+import { Canvas, useThree } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
-import type { Group } from "three";
+import { Vector3, type Group } from "three";
 import Piloto from "./Piloto";
 import { AVATARES, AVATAR_REAL, BARBAS, CASCOS, COLORES, LENTES, MOTOS, PIELES, SIN_CASCO, type Perfil } from "@/lib/perfil";
 import { NIVELES, type Nivel } from "@/lib/niveles";
@@ -16,6 +17,30 @@ type Props = {
   nivel: Nivel;
   alNivel: (n: Nivel) => void;
 };
+
+const ZOOM_MIN = 7;
+const ZOOM_MAX = 15;
+type ApiZoom = { mas: () => void; menos: () => void };
+
+/* Deja listos los botones + y − para acercar o alejar la cámara */
+function ZoomBotones({ api }: { api: MutableRefObject<ApiZoom | null> }) {
+  const { camera, controls } = useThree();
+  useEffect(() => {
+    const mover = (factor: number) => {
+      const c = controls as unknown as { target?: Vector3; update?: () => void } | null;
+      const objetivo = c?.target ?? new Vector3();
+      const d = camera.position.clone().sub(objetivo);
+      d.setLength(Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, d.length() * factor)));
+      camera.position.copy(objetivo).add(d);
+      c?.update?.();
+    };
+    api.current = { mas: () => mover(0.78), menos: () => mover(1.28) };
+    return () => {
+      api.current = null;
+    };
+  }, [camera, controls, api]);
+  return null;
+}
 
 function Vitrina({ perfil }: { perfil: Perfil }) {
   const moto = useRef<Group>(null);
@@ -48,6 +73,18 @@ const ETIQUETA = "font-mono text-[11px] uppercase tracking-[0.24em] text-tenue";
 
 export default function Menu({ perfil, alCambiar, alJugar, nivel, alNivel }: Props) {
   const valido = perfil.nombre.trim().length >= 2;
+  const zoom = useRef<ApiZoom | null>(null);
+
+  // teclas + y − para acercar o alejar (si no estás escribiendo el nombre)
+  useEffect(() => {
+    const alTeclear = (e: KeyboardEvent) => {
+      if ((e.target as HTMLElement | null)?.tagName === "INPUT") return;
+      if (e.key === "+" || e.key === "=") zoom.current?.mas();
+      if (e.key === "-" || e.key === "_") zoom.current?.menos();
+    };
+    window.addEventListener("keydown", alTeclear);
+    return () => window.removeEventListener("keydown", alTeclear);
+  }, []);
 
   return (
     <div className="fondo-menu grid min-h-screen w-screen md:grid-cols-[minmax(380px,480px)_1fr]">
@@ -263,27 +300,48 @@ export default function Menu({ perfil, alCambiar, alJugar, nivel, alNivel }: Pro
       </form>
 
       <section className="relative min-h-[46vh] md:min-h-screen">
-        <Canvas camera={{ position: [5.4, 3.3, 8.6], fov: 38 }} dpr={[1, 2]}>
+        <Canvas camera={{ position: [5.4, 4.3, 8.9], fov: 38 }} dpr={[1, 2]}>
           <hemisphereLight args={["#9a7bff", "#1a1030", 1.1]} />
           <directionalLight position={[3, 5, 2]} intensity={2.2} color="#ffb27a" />
           <directionalLight position={[-4, 3, -3]} intensity={1.4} color="#6d7bff" />
           <Vitrina perfil={perfil} />
           {/* solo gira con el mouse (o el dedo): arrastra para ver todo alrededor */}
+          <ZoomBotones api={zoom} />
           <OrbitControls
             makeDefault
             enablePan={false}
-            enableZoom={false}
+            enableZoom
+            zoomSpeed={0.8}
+            minDistance={ZOOM_MIN}
+            maxDistance={ZOOM_MAX}
             enableDamping
             dampingFactor={0.08}
             rotateSpeed={0.9}
             minPolarAngle={0.55}
             maxPolarAngle={Math.PI / 2.05}
-            target={[0, 0, 0]}
+            target={[0, 1, 0.3]}
           />
         </Canvas>
-        <p className="pointer-events-none absolute bottom-6 right-8 font-mono text-[11px] uppercase tracking-[0.3em] text-white/40">
-          Arrastra para girar
-        </p>
+        <div className="absolute bottom-6 right-8 flex items-center gap-3">
+          <p className="pointer-events-none hidden font-mono text-[11px] uppercase tracking-[0.3em] text-white/40 sm:block">
+            Arrastra para girar · rueda, + o − para acercar
+          </p>
+          {[
+            { t: "+", nombre: "Acercar", f: () => zoom.current?.mas() },
+            { t: "−", nombre: "Alejar", f: () => zoom.current?.menos() },
+          ].map((b) => (
+            <button
+              key={b.nombre}
+              type="button"
+              aria-label={b.nombre}
+              title={b.nombre}
+              onClick={b.f}
+              className="flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-black/30 text-xl text-white/80 backdrop-blur transition hover:border-white/50 hover:text-white active:scale-95"
+            >
+              {b.t}
+            </button>
+          ))}
+        </div>
       </section>
     </div>
   );
