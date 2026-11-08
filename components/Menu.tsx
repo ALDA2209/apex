@@ -140,6 +140,33 @@ export default function Menu({ perfil, alCambiar, alJugar }: Props) {
           />
         </label>
 
+        <div className="anim-subir flex items-center justify-between gap-3" style={{ animationDelay: "90ms" }}>
+          <span className={ETIQUETA}>Personaje</span>
+          <div className="flex gap-2">
+            {(
+              [
+                ["el", "Él"],
+                ["ella", "Ella"],
+              ] as const
+            ).map(([g, t]) => {
+              const activo = (perfil.genero ?? "el") === g;
+              return (
+                <button
+                  key={g}
+                  type="button"
+                  aria-pressed={activo}
+                  onClick={() => alCambiar({ ...perfil, genero: g })}
+                  className={`min-w-[5.5rem] rounded-full border px-5 py-1.5 text-center text-sm font-semibold transition active:scale-[0.97] ${
+                    activo ? "border-acento bg-acento/15 text-white" : "border-white/15 text-tenue hover:border-white/40 hover:text-white"
+                  }`}
+                >
+                  {t}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         <div className="anim-subir" style={{ animationDelay: "100ms" }}>
           <div className="flex items-center justify-between">
             <p className={ETIQUETA}>Semana {prog.semana}</p>

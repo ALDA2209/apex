@@ -22,14 +22,12 @@ import { AVATAR_REAL, PERFIL_INICIAL, type Perfil } from "@/lib/perfil";
 
 type Fase = "intro" | "menu" | "briefing" | "tienda" | "carrera";
 const CLAVE = "apex-perfil";
-const CLAVE_GENERO = "apex-genero";
 const JET = "var(--font-jetbrains)";
 
 export default function Juego() {
   const [fase, setFase] = useState<Fase>("intro");
   const [perfil, setPerfil] = useState<Perfil>(PERFIL_INICIAL);
   const [cargado, setCargado] = useState(false);
-  const [genero, setGenero] = useState<Genero | null>("el");
   const [partida, setPartida] = useState(0);
   const progreso = useProgreso();
   const dentro = useDentro();
@@ -64,13 +62,12 @@ export default function Juego() {
     } catch {}
   }, [perfil, cargado]);
 
-  const elegirGenero = (g: Genero) => {
-    estado.genero = g;
-    setGenero(g);
-    try {
-      localStorage.setItem(CLAVE_GENERO, g);
-    } catch {}
-  };
+  /* Él / Ella: se elige en el menú, va dentro del perfil (con el modelo 3D) y también ajusta los textos. */
+  const genero: Genero = perfil.genero ?? "el";
+  useEffect(() => {
+    estado.genero = genero;
+  }, [genero]);
+  const elegirGenero = (g: Genero) => setPerfil((p) => ({ ...p, genero: g }));
 
   useEffect(() => {
     estado.activo = fase === "carrera";

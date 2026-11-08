@@ -1,4 +1,4 @@
-import { BARBAS, CASCOS, COLORES, LENTES, PERFIL_INICIAL, SIN_CASCO, type Perfil } from "@/lib/perfil";
+import { BARBAS, JOYAS, CASCOS, CASCOS_ELLA, COLORES, LENTES, PERFIL_INICIAL, SIN_CASCO, type Perfil } from "@/lib/perfil";
 
 /* La tienda: aquí se gasta el dinero de la billetera. Lo básico viene gratis; lo demás se compra. */
 
@@ -7,7 +7,7 @@ export type Grupo = "moto" | "cabeza" | "mejora";
 export type Item = {
   id: string;
   grupo: Grupo;
-  /** subgrupo para ordenar: color, casco, lentes, barba */
+  /** subgrupo para ordenar: color, casco, lentes, barba, joya */
   tipo: string;
   nombre: string;
   detalle?: string;
@@ -43,6 +43,16 @@ const personalizado: Item = {
   imagen: "/tienda/moto-libre.png",
   puesto: (p) => !COLORES.some((c) => c.valor === p.color),
 };
+
+/** Nombre del objeto: los cascos de ella se llaman distinto. */
+export const nombreDe = (i: Item, genero?: "el" | "ella") => {
+  const m = /^casco:(\d)$/.exec(i.id);
+  return genero === "ella" && m ? (CASCOS_ELLA[Number(m[1])] ?? i.nombre) : i.nombre;
+};
+
+/** Fotos de la tienda: las de casco, lentes y cara base tienen una versión con la mujer (-f). */
+export const imagenDe = (img: string | undefined, genero?: "el" | "ella") =>
+  img && genero === "ella" && /\/tienda\/(casco|lentes|cara-base)/.test(img) ? img.replace(".png", "-f.png") : img;
 
 const cascos: Item[] = [
   { id: "casco:sin", grupo: "cabeza", tipo: "casco", nombre: "Sin casco", imagen: "/tienda/cara-base.png", precio: 0, poner: (p) => ({ ...p, casco: SIN_CASCO }), puesto: (p) => p.casco === SIN_CASCO },
@@ -80,6 +90,17 @@ const barbas: Item[] = BARBAS.map((n, i) => ({
   puesto: (p: Perfil) => (p.barba ?? 0) === i,
 }));
 
+const joyas: Item[] = JOYAS.map((n, i) => ({
+  id: `joya:${i}`,
+  grupo: "cabeza" as const,
+  tipo: "joya",
+  nombre: n,
+  imagen: i === 0 ? "/tienda/cara-base.png" : `/tienda/joya-${i}.png`,
+  precio: i === 0 ? 0 : i === 1 ? 30 : 40,
+  poner: (p: Perfil) => ({ ...p, joya: i }),
+  puesto: (p: Perfil) => (p.joya ?? 0) === i,
+}));
+
 /* Mejoras que ayudan a jugar. Se compran una vez y valen todos los días. */
 export const MEJORAS: Item[] = [
   { id: "mejora:kit", grupo: "mejora", tipo: "mejora", nombre: "Kit de reparación de regalo", detalle: "Empiezas cada día con 1 kit extra para arreglar el mototaxi en ruta.", precio: 150 },
@@ -88,7 +109,7 @@ export const MEJORAS: Item[] = [
   { id: "mejora:paciencia", grupo: "mejora", tipo: "mejora", nombre: "Un punto de paciencia", detalle: "El policía te arresta con 4 puntos de infracción en vez de 3.", precio: 300 },
 ];
 
-export const CATALOGO: Item[] = [...colores, personalizado, ...cascos, ...lentes, ...barbas, ...MEJORAS];
+export const CATALOGO: Item[] = [...colores, personalizado, ...cascos, ...lentes, ...barbas, ...joyas, ...MEJORAS];
 
 export const itemPorId = (id: string) => CATALOGO.find((i) => i.id === id);
 
@@ -110,5 +131,6 @@ export function perfilPermitido(p: Perfil, compras: string[]): Perfil {
   revisar(r.casco === SIN_CASCO ? "casco:sin" : `casco:${r.casco}`, () => (r.casco = SIN_CASCO));
   revisar(`lentes:${r.lentes ?? 0}`, () => (r.lentes = 0));
   revisar(`barba:${r.barba ?? 0}`, () => (r.barba = 0));
+  revisar(`joya:${r.joya ?? 0}`, () => (r.joya = 0));
   return r;
 }

@@ -11,6 +11,10 @@ export type Perfil = {
   lentes?: number;
   /** barba: 0 ninguna, 1 corta, 2 completa */
   barba?: number;
+  /** personaje: "el" (varón) o "ella" (mujer) */
+  /** joyas (solo ella): 0 ninguna, 1 aros dorados, 2 perlas */
+  joya?: number;
+  genero?: "el" | "ella";
 };
 
 export const COLORES = [
@@ -54,6 +58,8 @@ export const AVATARES: Atuendo[] = [
 export const AVATAR_REAL = 3;
 export const LENTES = ["Ninguno", "Redondos", "De sol"];
 export const BARBAS = ["Ninguna", "Corta", "Completa"];
+/** joyas del personaje mujer (en vez de la barba) */
+export const JOYAS = ["Ninguna", "Aros dorados", "Perlas"];
 
 export function atuendo(p: Perfil): Atuendo {
   return AVATARES[p.avatar ?? 0] ?? AVATARES[0];
@@ -68,6 +74,8 @@ export const PIELES = [
 ];
 
 export const CASCOS = ["Integral", "Abierto", "Cresta", "Retro"];
+/** los mismos cuatro lugares de la tienda, con cascos distintos para ella */
+export const CASCOS_ELLA = ["Perla con lazo", "Orejitas", "Corazones", "Flores"];
 /** valor de perfil.casco cuando no se quiere casco */
 export const SIN_CASCO = 4;
 

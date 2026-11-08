@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useProgreso } from "@/lib/semana";
-import { CATALOGO, MEJORAS, esTuyo, type Grupo, type Item } from "@/lib/tienda";
+import { CATALOGO, MEJORAS, esTuyo, imagenDe, nombreDe, type Grupo, type Item } from "@/lib/tienda";
 import type { Perfil } from "@/lib/perfil";
 
 const ETIQUETA = "font-mono text-[11px] uppercase tracking-[0.24em] text-tenue";
@@ -54,10 +54,10 @@ export default function InventarioMenu({ perfil, alCambiar, alCerrar, alIrTienda
         <span className="relative block aspect-square w-full bg-gradient-to-b from-white/[0.06] to-transparent">
           {i.imagen && (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={i.imagen} alt={i.nombre} loading="lazy" draggable={false} className="absolute inset-0 h-full w-full object-contain" />
+            <img src={imagenDe(i.imagen, perfil.genero)} alt={nombreDe(i, perfil.genero)} loading="lazy" draggable={false} className="absolute inset-0 h-full w-full object-contain" />
           )}
         </span>
-        <span className="px-1 leading-tight">{i.nombre}</span>
+        <span className="px-1 leading-tight">{nombreDe(i, perfil.genero)}</span>
         <span className="font-mono text-[10px] tracking-[0.1em]" style={{ color: puesto ? "#5eead4" : comprado ? "#fbbf24" : "#8b93b8" }}>
           {puesto ? "PUESTO ✓" : comprado ? "COMPRADO · PONER" : "BÁSICO · PONER"}
         </span>
@@ -135,7 +135,8 @@ export default function InventarioMenu({ perfil, alCambiar, alCerrar, alIrTienda
             <>
               {grupo("Casco", tuyos("cabeza").filter((i) => i.tipo === "casco"))}
               {grupo("Lentes", tuyos("cabeza").filter((i) => i.tipo === "lentes"))}
-              {grupo("Barba", tuyos("cabeza").filter((i) => i.tipo === "barba"))}
+              {perfil.genero !== "ella" && grupo("Barba", tuyos("cabeza").filter((i) => i.tipo === "barba"))}
+              {perfil.genero === "ella" && grupo("Joyas", tuyos("cabeza").filter((i) => i.tipo === "joya"))}
             </>
           )}
 

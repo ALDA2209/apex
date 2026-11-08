@@ -93,18 +93,44 @@ export default function Accesorios({
 
 /* Lentes y barba hechos a la medida de la cara del personaje realista.
    Se colocan en las unidades del modelo y la cara mira hacia +z. */
+/* Dónde está el lóbulo de la oreja en el modelo de ella (coordenadas del modelo). */
+const OREJA = { x: 0.1, y: 0.735, z: -0.005 };
+
 export function AccesoriosReal({
   lentes = 0,
   barba = 0,
   colorBarba = "#17120f",
+  joya = 0,
 }: {
   lentes?: number;
   barba?: number;
   colorBarba?: string;
+  /** solo para ella: 0 ninguna, 1 aros dorados, 2 perlas */
+  joya?: number;
 }) {
   const pelo = <meshStandardMaterial color={colorBarba} roughness={0.95} />;
   return (
     <group>
+      {joya === 1 &&
+        [-1, 1].map((l) => (
+          <mesh key={l} position={[l * OREJA.x, OREJA.y - 0.024, OREJA.z]} rotation={[0, Math.PI / 2, 0]}>
+            <torusGeometry args={[0.024, 0.0035, 10, 28]} />
+            <meshStandardMaterial color="#e8b94a" metalness={0.95} roughness={0.22} />
+          </mesh>
+        ))}
+      {joya === 2 &&
+        [-1, 1].map((l) => (
+          <group key={l} position={[l * OREJA.x, OREJA.y, OREJA.z]}>
+            <mesh>
+              <sphereGeometry args={[0.007, 12, 12]} />
+              <meshStandardMaterial color="#e8b94a" metalness={0.95} roughness={0.22} />
+            </mesh>
+            <mesh position={[0, -0.02, 0]} scale={[0.75, 1, 0.75]}>
+              <sphereGeometry args={[0.0145, 16, 16]} />
+              <meshStandardMaterial color="#f6f1e8" metalness={0.25} roughness={0.2} emissive="#d9cfc0" emissiveIntensity={0.12} />
+            </mesh>
+          </group>
+        ))}
       {lentes === 1 &&
         [-1, 1].map((l) => (
           <group key={l}>

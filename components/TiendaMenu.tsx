@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { comprar, useProgreso } from "@/lib/semana";
-import { CATALOGO, MEJORAS, esTuyo, type Grupo, type Item } from "@/lib/tienda";
+import { CATALOGO, MEJORAS, esTuyo, imagenDe, nombreDe, type Grupo, type Item } from "@/lib/tienda";
 import type { Perfil } from "@/lib/perfil";
 
 const ETIQUETA = "font-mono text-[11px] uppercase tracking-[0.24em] text-tenue";
@@ -15,6 +15,7 @@ const GRUPOS_CABEZA = [
   { tipo: "casco", titulo: "Casco" },
   { tipo: "lentes", titulo: "Lentes" },
   { tipo: "barba", titulo: "Barba" },
+  { tipo: "joya", titulo: "Joyas" },
 ];
 
 type Props = {
@@ -59,7 +60,7 @@ export default function TiendaMenu({ perfil, alCambiar, alProbar, alVolver }: Pr
       setAviso(`Te faltan S/ ${Math.max(0, i.precio - prog.dinero)} para comprar esto.`);
       return false;
     }
-    setAviso(`Compraste ${i.nombre}.`);
+    setAviso(`Compraste ${nombreDe(i, perfil.genero)}.`);
     return true;
   };
 
@@ -91,7 +92,7 @@ export default function TiendaMenu({ perfil, alCambiar, alProbar, alVolver }: Pr
             </label>
           )}
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold text-white">{sel.nombre}</p>
+            <p className="truncate text-sm font-semibold text-white">{nombreDe(sel, perfil.genero)}</p>
             <p className="text-[11px] text-tenue">
               {ya ? "Lo llevas puesto" : mio ? "Ya es tuyo" : falta > 0 ? `Te faltan S/ ${falta}` : `Cuesta S/ ${sel.precio}`}
             </p>
@@ -136,13 +137,13 @@ export default function TiendaMenu({ perfil, alCambiar, alProbar, alVolver }: Pr
         <span className="relative block aspect-square w-full bg-gradient-to-b from-white/[0.06] to-transparent">
           {i.imagen && (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={i.imagen} alt={i.nombre} loading="lazy" draggable={false} className="absolute inset-0 h-full w-full object-contain" />
+            <img src={imagenDe(i.imagen, perfil.genero)} alt={nombreDe(i, perfil.genero)} loading="lazy" draggable={false} className="absolute inset-0 h-full w-full object-contain" />
           )}
           {i.id === "color:libre" && (
             <span className="absolute right-1.5 top-1.5 h-4 w-4 rounded-full ring-1 ring-white/50" style={{ background: puesto(i) ? perfil.color : "conic-gradient(red, yellow, lime, aqua, blue, magenta, red)" }} />
           )}
         </span>
-        <span className="px-1 leading-tight">{i.nombre}</span>
+        <span className="px-1 leading-tight">{nombreDe(i, perfil.genero)}</span>
         <span className="font-mono text-[10px] tracking-[0.1em]" style={{ color: mio || puesto(i) ? "#5eead4" : "#fbbf24" }}>
           {puesto(i) ? "PUESTO ✓" : mio ? "TUYO" : `S/ ${i.precio}`}
         </span>
@@ -190,7 +191,7 @@ export default function TiendaMenu({ perfil, alCambiar, alProbar, alVolver }: Pr
       )}
 
       {pestana === "cabeza" &&
-        GRUPOS_CABEZA.map((g) => (
+        GRUPOS_CABEZA.filter((g) => (g.tipo === "barba" ? perfil.genero !== "ella" : g.tipo === "joya" ? perfil.genero === "ella" : true)).map((g) => (
           <div key={g.tipo}>
             <p className={ETIQUETA}>{g.titulo}</p>
             <div className="mt-2 grid grid-cols-3 gap-2">{CATALOGO.filter((i) => i.tipo === g.tipo).map(boton)}</div>
