@@ -320,6 +320,31 @@ function Cabina({ moto, color }: { moto: number; color: string }) {
   );
 }
 
+/* Puertas de la zona de carga del mototaxi real: tapan los costados para que las cajas no se vean sueltas */
+function PuertasCarga({ color }: { color: string }) {
+  return (
+    <group>
+      {[-1, 1].map((l) => (
+        <group key={`pc${l}`} position={[l * 0.57, 1.05, 0.77]}>
+          <RoundedBox args={[0.05, 0.4, 0.5]} radius={0.02} smoothness={3}>
+            <meshStandardMaterial color={color} metalness={0.05} roughness={0.5} />
+          </RoundedBox>
+          {/* canto oscuro arriba y manija */}
+          <RoundedBox args={[0.058, 0.04, 0.52]} radius={0.015} smoothness={2} position={[0, 0.2, 0]}>
+            <meshStandardMaterial color="#1b1f2b" metalness={0.5} roughness={0.4} />
+          </RoundedBox>
+          <RoundedBox args={[0.03, 0.035, 0.12]} radius={0.012} smoothness={2} position={[l * 0.035, 0.07, 0.15]}>
+            <meshStandardMaterial color="#d7deee" metalness={0.8} roughness={0.3} />
+          </RoundedBox>
+          <RoundedBox args={[0.054, 0.36, 0.01]} radius={0.004} smoothness={2} position={[0, 0, -0.24]}>
+            <meshStandardMaterial color="#0b0d12" roughness={0.6} />
+          </RoundedBox>
+        </group>
+      ))}
+    </group>
+  );
+}
+
 export default function Piloto({
   perfil,
   cajas = 5,
@@ -341,13 +366,14 @@ export default function Piloto({
   const metal = "#1b1f2b";
 
   const carton = ["#c9a26b", "#b98a52", "#d6b27c"];
-  const posTecho: Pos[] = [
-    [-0.3, 2.27, 0],
-    [0.3, 2.27, 0],
-    [-0.3, 2.27, 0.55],
-    [0.3, 2.27, 0.55],
-    [-0.3, 2.27, 1.1],
-    [0.3, 2.27, 1.1],
+  /* mototaxi real: la carga va dentro, sobre la banca de atrás, detrás de las puertas (4 abajo y 2 encima) */
+  const posInterior: Pos[] = [
+    [-0.2, 1.2, 0.66],
+    [0.2, 1.2, 0.66],
+    [-0.2, 1.2, 0.92],
+    [0.2, 1.2, 0.92],
+    [-0.2, 1.66, 0.66],
+    [0.2, 1.66, 0.92],
   ];
   const posCajas: Pos[] = [
     [-0.32, 0.79, 0.88],
@@ -425,8 +451,9 @@ export default function Piloto({
           <Suspense fallback={null}>
             <MotoReal color={color} />
           </Suspense>
-          {posTecho.slice(0, Math.max(0, Math.min(6, cajas))).map((p, i) => (
-            <RoundedBox key={`caja${i}`} args={[0.46, 0.36, 0.4]} radius={0.02} smoothness={2} position={p}>
+          <PuertasCarga color={color} />
+          {posInterior.slice(0, Math.max(0, Math.min(6, cajas))).map((p, i) => (
+            <RoundedBox key={`caja${i}`} args={[0.34, 0.46, 0.25]} radius={0.02} smoothness={2} position={p} rotation={[0, i % 2 ? 0.05 : -0.04, 0]}>
               <meshStandardMaterial color={carton[i % 3]} roughness={0.85} />
             </RoundedBox>
           ))}
