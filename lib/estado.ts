@@ -68,6 +68,8 @@ export const estado = {
   servicio: 0,
   decisiones: [] as Decision[],
   compras: [] as Compra[],
+  consultas: [] as string[],
+  gastoAbogado: 0,
   genero: "el" as Genero,
 };
 
@@ -211,6 +213,17 @@ export function pagarServicio(
   estado.kits += efecto.kits;
   estado.botiquines += efecto.botiquines;
   estado.compras.push({ lugar, monto, conComprobante });
+  avisar();
+  return true;
+}
+
+/* Pagas una consulta al abogado: bajas tu riesgo y te queda anotada para los puentes. */
+export function consultarAbogado(id: string, costo: number, riesgo: number) {
+  if (estado.consultas.includes(id) || estado.soles < costo) return false;
+  estado.soles -= costo;
+  estado.gastoAbogado += costo;
+  estado.riesgo = limitar(estado.riesgo + riesgo);
+  estado.consultas.push(id);
   avisar();
   return true;
 }
@@ -467,6 +480,8 @@ export function reiniciarPartida() {
   estado.servicio = 0;
   estado.decisiones = [];
   estado.compras = [];
+  estado.consultas = [];
+  estado.gastoAbogado = 0;
   estado.ventas = 0;
   estado.cajas = 4;
   estado.entregas = [];

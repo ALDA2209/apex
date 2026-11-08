@@ -15,7 +15,7 @@ type Marca = { d: number; sigla: string; nombre: string; tipo: "puente" | "servi
 
 const MARCAS: Marca[] = [
   ...PUENTES.map((p, i): Marca => ({ d: p.distancia, sigla: `P${i + 1}`, nombre: p.subtitulo, tipo: "puente" })),
-  ...SERVICIOS.map((s): Marca => ({ d: s.distancia, sigla: s.variante === "restaurante" ? "R" : s.variante === "entrega" ? "E" : "T", nombre: s.nombre, tipo: "servicio" })),
+  ...SERVICIOS.map((s): Marca => ({ d: s.distancia, sigla: s.variante === "restaurante" ? "R" : s.variante === "entrega" ? "E" : s.variante === "estudio" ? "A" : "T", nombre: s.nombre, tipo: "servicio" })),
   { d: META, sigla: "META", nombre: "META", tipo: "meta" as const },
 ].sort((a, b) => a.d - b.d);
 

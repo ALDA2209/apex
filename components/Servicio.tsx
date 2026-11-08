@@ -6,6 +6,7 @@ import { estado, pagarServicio, salirDeTienda, useServicio, useSoles } from "@/l
 import Restaurante from "@/components/Restaurante";
 import { SERVICIOS, type Plato } from "@/lib/ruta";
 import Entrega from "@/components/Entrega";
+import Estudio from "@/components/Estudio";
 
 const JET = "var(--font-jetbrains)";
 const BRIC = "var(--font-bricolage)";
@@ -272,6 +273,7 @@ export default function Servicio() {
   const n = useServicio();
   if (!SERVICIOS[n]) return null;
   if (SERVICIOS[n].entrega) return <Entrega key={n} s={SERVICIOS[n]} />;
+  if (SERVICIOS[n].variante === "estudio") return <Estudio key={n} s={SERVICIOS[n]} />;
   if (SERVICIOS[n].variante === "restaurante") return <Restaurante key={n} s={SERVICIOS[n]} />;
   return <Tarjeta key={n} n={n} />;
 }

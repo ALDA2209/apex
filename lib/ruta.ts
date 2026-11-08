@@ -36,7 +36,7 @@ export type Servicio = {
   puerta: string;
   lugar: string;
   distancia: number;
-  variante: "restaurante" | "taller" | "entrega";
+  variante: "restaurante" | "taller" | "entrega" | "estudio";
   frase: string;
   carta: string;
   platos: Plato[];
@@ -49,6 +49,23 @@ export type Servicio = {
 const nada = { integridad: 0, salud: 0, kits: 0, botiquines: 0 };
 
 export const SERVICIOS: Servicio[] = [
+  {
+    titulo: "ASESORÍA",
+    nombre: "ESTUDIO JURÍDICO PAREDES",
+    letrero: ["ESTUDIO PAREDES", "ABOGADOS · ASESORÍA TRIBUTARIA"],
+    parqueo: [],
+    puerta: "Entrar al estudio",
+    lugar: "el Estudio Jurídico Paredes",
+    distancia: 110,
+    variante: "estudio",
+    frase: "",
+    carta: "",
+    platos: [],
+    saberId: "",
+    saberTitulo: "",
+    saberBono: 0,
+    saber: [],
+  },
   {
     titulo: "ENTREGA 1",
     nombre: "BODEGA DOÑA ROSA",

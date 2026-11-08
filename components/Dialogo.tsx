@@ -1,6 +1,7 @@
 "use client";
 
 import { callar, hablar } from "@/lib/audio";
+import { CONSULTAS } from "@/lib/abogado";
 import { useCallback, useEffect, useState } from "react";
 import { concluirPuente, decidir, estado, useFase, usePuente } from "@/lib/estado";
 import { PUENTES, type Puente as DatosPuente } from "@/lib/puentes";
@@ -148,6 +149,14 @@ function Conversacion({ p, indice }: { p: DatosPuente; indice: number }) {
                   {i + 1}
                 </span>
                 <span className="text-base leading-snug">{o.texto}</span>
+                {o.correcta && estado.consultas.some((id) => CONSULTAS.find((c) => c.id === id)?.puente === indice) && (
+                  <span
+                    className="ml-auto shrink-0 self-center rounded-full px-2.5 py-1 text-[9px] uppercase tracking-[0.18em]"
+                    style={{ background: "rgba(94,234,212,0.15)", color: "#5eead4", fontFamily: JET }}
+                  >
+                    ⚖ Lo explicó tu abogado
+                  </span>
+                )}
               </button>
             ))}
           </div>

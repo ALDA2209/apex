@@ -1,12 +1,16 @@
 "use client";
 
+import { useEffect } from "react";
 import { estado, useRiesgo, useSoles, useVentas } from "@/lib/estado";
 import { PUENTES } from "@/lib/puentes";
+import { callar, hablar } from "@/lib/audio";
+import { ABOGADO, CONSULTAS, COSTO_CONSULTA } from "@/lib/abogado";
 
 const JET = "var(--font-jetbrains)";
 const BRIC = "var(--font-bricolage)";
 
 export default function Meta({ alSalir }: { alSalir: () => void }) {
+  useEffect(() => () => callar(), []);
   const soles = useSoles();
   const ventas = useVentas();
   const entregas = estado.entregas;
@@ -18,6 +22,16 @@ export default function Meta({ alSalir }: { alSalir: () => void }) {
   const moto = Math.round(estado.integridad);
   const salud = Math.round(estado.salud);
   const nivelColor = (n: number) => (n >= 60 ? "#2dd4bf" : n >= 30 ? "#fbbf24" : "#f43f5e");
+  const consultadas = CONSULTAS.filter((c) => estado.consultas.includes(c.id));
+  const falladas = decisiones.filter((d) => !d.correcta).length;
+  const consejo =
+    consultadas.length === 0
+      ? `No consultaste a un abogado. Una consulta cuesta ${COSTO_CONSULTA} soles; una sanción puede costar mucho más.${
+          falladas > 0 ? ` Te habría ayudado en los ${falladas} puente${falladas > 1 ? "s" : ""} donde fallaste.` : ""
+        }`
+      : `Consultaste ${consultadas.length} de ${CONSULTAS.length} temas y gastaste ${estado.gastoAbogado} soles. Eso es prevención: cuesta menos que corregir un error después.${
+          falladas > 0 ? " Aun así, repasa las lecciones de los puentes donde fallaste." : " Y tus decisiones lo demuestran."
+        }`;
   const color = riesgo <= 35 ? "#2dd4bf" : riesgo <= 65 ? "#fbbf24" : "#f43f5e";
   const veredicto =
     riesgo <= 35
@@ -90,6 +104,36 @@ export default function Meta({ alSalir }: { alSalir: () => void }) {
               </div>
             );
           })}
+        </div>
+
+        <div
+          className="mt-4 rounded-xl border px-4 py-3"
+          style={{ borderColor: "rgba(251,191,36,0.4)", background: "rgba(251,191,36,0.05)" }}
+        >
+          <p className="text-[10px] uppercase tracking-[0.3em]" style={{ color: "#fbbf24", fontFamily: JET }}>
+            ⚖ Tu abogado opina · {ABOGADO}
+          </p>
+          <p className="mt-1 text-base leading-snug text-white/90" style={{ fontFamily: BRIC }}>
+            {consejo}
+          </p>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => hablar(`${ABOGADO}. ${consejo}`, "narrador")}
+              className="rounded-full border border-white/20 px-4 py-1.5 text-[11px] uppercase tracking-[0.2em] text-white/90 hover:border-white/50"
+              style={{ fontFamily: JET }}
+            >
+              ▶ Escuchar
+            </button>
+            <button
+              type="button"
+              onClick={callar}
+              className="rounded-full border border-white/20 px-4 py-1.5 text-[11px] uppercase tracking-[0.2em] text-white/60 hover:border-white/50"
+              style={{ fontFamily: JET }}
+            >
+              ■ Detener
+            </button>
+          </div>
         </div>
 
         {estado.infracciones.length > 0 && (

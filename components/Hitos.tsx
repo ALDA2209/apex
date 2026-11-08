@@ -46,7 +46,7 @@ function Local({ s, indice }: { s: Servicio; indice: number }) {
 
   return (
     <group ref={raiz} visible={false}>
-      <Acera z0={z + 6} linea1={s.letrero[0]} linea2={s.letrero[1]} variante={s.variante === "entrega" ? "bodega" : s.variante} parqueo={s.parqueo} />
+      <Acera z0={z + 6} linea1={s.letrero[0]} linea2={s.letrero[1]} variante={s.variante === "entrega" || s.variante === "estudio" ? "bodega" : s.variante} parqueo={s.parqueo} />
     </group>
   );
 }
