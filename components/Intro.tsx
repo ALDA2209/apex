@@ -438,6 +438,14 @@ function Titulo({ alTerminar }: { alTerminar: () => void }) {
         <span key={c} className={`pointer-events-none absolute h-8 w-8 border-[#5eead4]/60 ${c}`} />
       ))}
 
+      {/* autor: pequeño y discreto, a un costado */}
+      <p
+        className="pointer-events-none absolute bottom-[5.2rem] left-10 text-[10px] uppercase tracking-[0.3em] text-white/40"
+        style={{ fontFamily: JET, ...aparece(1500) }}
+      >
+        Aldahir Silva
+      </p>
+
       <p className="mb-5 text-[11px] uppercase tracking-[0.55em]" style={{ color: "#5eead4", fontFamily: JET, ...aparece(100) }}>
         Primer Hackathon · Huánuco 2026
       </p>

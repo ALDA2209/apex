@@ -2,7 +2,8 @@
 
 import { useRef } from "react";
 import Avatar from "./Avatar";
-import { Canvas, useFrame } from "@react-three/fiber";
+import { Canvas } from "@react-three/fiber";
+import { OrbitControls } from "@react-three/drei";
 import type { Group } from "three";
 import Piloto from "./Piloto";
 import { AVATARES, AVATAR_REAL, BARBAS, CASCOS, COLORES, LENTES, MOTOS, PIELES, SIN_CASCO, type Perfil } from "@/lib/perfil";
@@ -19,14 +20,10 @@ type Props = {
 function Vitrina({ perfil }: { perfil: Perfil }) {
   const moto = useRef<Group>(null);
   const quieto = useRef(0);
-  useFrame(({ clock }) => {
-    // el mototaxi gira despacio de un lado a otro y el personaje queda siempre a la vista
-    if (moto.current) moto.current.rotation.y = -2.45 + Math.sin(clock.elapsedTime * 0.45) * 0.4;
-  });
 
   return (
     <>
-      <group ref={moto} position={[-0.9, 0.08, 0.3]}>
+      <group ref={moto} position={[-0.9, 0.08, 0.3]} rotation={[0, -2.45, 0]}>
         <Piloto perfil={perfil} vacio />
       </group>
       {/* el personaje, de pie junto al mototaxi */}
@@ -271,9 +268,21 @@ export default function Menu({ perfil, alCambiar, alJugar, nivel, alNivel }: Pro
           <directionalLight position={[3, 5, 2]} intensity={2.2} color="#ffb27a" />
           <directionalLight position={[-4, 3, -3]} intensity={1.4} color="#6d7bff" />
           <Vitrina perfil={perfil} />
+          {/* solo gira con el mouse (o el dedo): arrastra para ver todo alrededor */}
+          <OrbitControls
+            makeDefault
+            enablePan={false}
+            enableZoom={false}
+            enableDamping
+            dampingFactor={0.08}
+            rotateSpeed={0.9}
+            minPolarAngle={0.55}
+            maxPolarAngle={Math.PI / 2.05}
+            target={[0, 0, 0]}
+          />
         </Canvas>
         <p className="pointer-events-none absolute bottom-6 right-8 font-mono text-[11px] uppercase tracking-[0.3em] text-white/40">
-          Vista previa
+          Arrastra para girar
         </p>
       </section>
     </div>
