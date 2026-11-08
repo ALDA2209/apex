@@ -15,7 +15,7 @@ export default function EstadoIA() {
           ? { color: "#fbbf24", punto: "#fbbf24", texto: `La IA no respondió (${e.motivo}). Pulsa «Reintentar».` }
           : e.fase === "sin-url"
             ? { color: "#8b93b8", punto: "#8b93b8", texto: "Falta conectar la IA: el juego necesita el servidor de preguntas." }
-            : { color: "#8b93b8", punto: "#8b93b8", texto: "IA en espera" };
+            : { color: "#8b93b8", punto: "#8b93b8", texto: "La IA crea tus preguntas al pulsar «Empezar» (puede tardar hasta un minuto)" };
   return (
     <p className="flex items-start gap-2 font-mono text-[10px] leading-relaxed tracking-[0.04em]" style={{ color: info.color }} role="status">
       <span className={`mt-[3px] h-1.5 w-1.5 shrink-0 rounded-full ${e.fase === "pidiendo" ? "animate-pulse" : ""}`} style={{ background: info.punto }} />
