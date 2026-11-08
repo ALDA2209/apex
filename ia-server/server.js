@@ -389,10 +389,11 @@ function sacarReserva(nOp, evitar) {
 
 async function crearPreguntas(b) {
   const { nOp, plan, usuario } = pedidoPreguntas(b);
+  const fin = Date.now() + 68000;
   let ultimo;
   for (let intento = 0; intento < 2; intento++) {
     try {
-      const crudo = await geminiJson(REGLAS_PREGUNTAS, usuario);
+      const crudo = await geminiJson(REGLAS_PREGUNTAS, usuario, fin);
       const lista = validarPreguntas(JSON.parse(crudo), plan, nOp);
       guardarReserva(nOp, lista);
       return lista;
@@ -410,9 +411,9 @@ async function crearPreguntas(b) {
   throw ultimo;
 }
 
-async function llamarJson(modelo, sistema, usuario, clave) {
+async function llamarJson(modelo, sistema, usuario, clave, ms = 40000) {
   const ctl = new AbortController();
-  const t = setTimeout(() => ctl.abort(), 22000);
+  const t = setTimeout(() => ctl.abort(), ms);
   try {
     const generationConfig = {
       temperature: 1,
@@ -448,12 +449,15 @@ async function llamarJson(modelo, sistema, usuario, clave) {
   }
 }
 
-async function geminiJson(sistema, usuario) {
+/* `fin` = hora límite de todo el pedido (el juego espera 80 s; se responde antes). Cada intento puede usar hasta 40 s. */
+async function geminiJson(sistema, usuario, fin) {
   let ultimo;
   for (const m of await listaModelos()) {
     for (let v = 0; v < 2; v++) {
+      const resta = fin - Date.now();
+      if (resta < 9000) throw ultimo || new Error("Abort: tiempo agotado");
       try {
-        return await conClaves(m, (k) => llamarJson(m, sistema, usuario, k));
+        return await conClaves(m, (k) => llamarJson(m, sistema, usuario, k, Math.min(40000, resta - 2000)));
       } catch (e) {
         ultimo = e;
         console.log("falló", String(e).slice(0, 120));
