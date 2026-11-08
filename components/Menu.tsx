@@ -1,6 +1,7 @@
 "use client";
 
 import TiendaMenu from "@/components/TiendaMenu";
+import InventarioMenu from "@/components/InventarioMenu";
 import { useEffect, useRef, useState } from "react";
 import type { MutableRefObject } from "react";
 import Avatar from "./Avatar";
@@ -75,7 +76,7 @@ export default function Menu({ perfil, alCambiar, alJugar }: Props) {
   const rango = rangoDe(prog.xp);
   const pctXp = rango.siguiente ? Math.min(100, ((prog.xp - rango.desde) / (rango.siguiente - rango.desde)) * 100) : 100;
   const [demo, setDemo] = useState(false);
-  const [vista, setVista] = useState<"inicio" | "tienda">("inicio");
+  const [vista, setVista] = useState<"inicio" | "tienda" | "inventario">("inicio");
   const [prueba, setPrueba] = useState<Perfil | null>(null);
   const valido = perfil.nombre.trim().length >= 2;
   const zoom = useRef<ApiZoom | null>(null);
@@ -102,6 +103,8 @@ export default function Menu({ perfil, alCambiar, alJugar }: Props) {
       >
         {vista === "tienda" ? (
           <TiendaMenu perfil={perfil} alCambiar={alCambiar} alProbar={setPrueba} alVolver={() => setVista("inicio")} />
+        ) : vista === "inventario" ? (
+          <InventarioMenu perfil={perfil} alCambiar={alCambiar} alVolver={() => setVista("inicio")} alIrTienda={() => setVista("tienda")} />
         ) : (
           <>
         <header className="anim-subir">
@@ -206,17 +209,26 @@ export default function Menu({ perfil, alCambiar, alJugar }: Props) {
           <span className="font-mono text-sm opacity-70 transition group-hover:translate-x-1">→</span>
         </button>
 
-        <button
-          type="button"
-          onClick={() => setVista("tienda")}
-          className="anim-subir flex items-center justify-between rounded-2xl border border-white/15 px-6 py-3.5 text-left font-semibold text-white transition hover:border-white/40 hover:bg-white/[0.04] active:scale-[0.99]"
-          style={{ animationDelay: "160ms" }}
-        >
-          <span>Tienda</span>
-          <span className="font-mono text-sm" style={{ color: "#fbbf24" }}>
-            S/ {prog.dinero}
-          </span>
-        </button>
+        <div className="anim-subir grid grid-cols-2 gap-2" style={{ animationDelay: "160ms" }}>
+          <button
+            type="button"
+            onClick={() => setVista("tienda")}
+            className="flex items-center justify-between rounded-2xl border border-white/15 px-4 py-3.5 text-left font-semibold text-white transition hover:border-white/40 hover:bg-white/[0.04] active:scale-[0.99]"
+          >
+            <span>Tienda</span>
+            <span className="font-mono text-sm" style={{ color: "#fbbf24" }}>
+              S/ {prog.dinero}
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setVista("inventario")}
+            className="flex items-center justify-between rounded-2xl border border-white/15 px-4 py-3.5 text-left font-semibold text-white transition hover:border-white/40 hover:bg-white/[0.04] active:scale-[0.99]"
+          >
+            <span>Inventario</span>
+            <span className="font-mono text-sm text-tenue">{prog.compras.length}</span>
+          </button>
+        </div>
 
         <p className="font-mono text-[11px] text-tenue/80">A · D o ← → para cambiar de carril</p>
         <p className="text-[10px] text-tenue/50">Modelos 3D del mototaxi y del personaje generados con Meshy (CC BY 4.0).</p>
